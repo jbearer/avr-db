@@ -15,3 +15,4 @@ set(PROGRAMMER arduino)
 set(SERIAL_DEV /dev/ttyACM0)
 
 add_executable_avr(blink blink.c)
+add_executable_avr(simple simple.c)
