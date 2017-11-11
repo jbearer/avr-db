@@ -24,6 +24,7 @@ namespace avr {
         CPI = 0b0011,
         LDS = 0b1001'000'0000,
         BRGE = 0b1111'01'100,
+        BRNE = 0b1111'01'001,
         RJMP = 0b1100,
         EOR = 0b0010'01,
         OUT = 0b1011'1,

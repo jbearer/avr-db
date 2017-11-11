@@ -150,6 +150,7 @@ instruction avr::decode(const byte_t *pc)
     std::underlying_type_t<opcode> opcode9 = bits_at(word1, std::vector<size_t>{0,1,2,3,4,5,13,14,15});
     switch (opcode9) {
     case opcode::BRGE:
+    case opcode::BRNE:
         instr.op = to_opcode(opcode9);
         instr.size = 1;
         uint8_t signed_offset = bits_range(word1, 6, 13);
@@ -246,6 +247,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "eor";
     case OUT:
         return "out";
+    case BRNE:
+        return "brne";
     default:
         throw invalid_instruction_error(instr);
     }

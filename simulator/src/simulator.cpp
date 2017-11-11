@@ -174,6 +174,10 @@ private:
             brge(instr.args.offset.offset);
             pc += instr.size;
             break;
+        case BRNE:
+            brne(instr.args.offset.offset);
+            pc += instr.size;
+            break;
         case RJMP:
             rjmp(instr.args.offset12.offset);
             pc += instr.size;
@@ -359,6 +363,13 @@ private:
     void brge(int8_t offset)
     {
         if (!(sreg & SREG_S)) {
+            pc += offset;
+        }
+    }
+
+    void brne(int8_t offset)
+    {
+        if (!(sreg & SREG_Z)) {
             pc += offset;
         }
     }
