@@ -76,3 +76,28 @@ TEST(decode, cp)
     EXPECT_EQ(0b01100, instr.args.register1_register2.register1);
     EXPECT_EQ(0b10101, instr.args.register1_register2.register2);
 }
+
+TEST(decode, ldi)
+{
+    //                            oooo KKKK dddd KKKK
+    auto instr = decode_raw<16>(0b1110'0110'1001'1010);
+    ASSERT_EQ(opcode::LDI, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b0110'1010, instr.args.constant_register.constant);
+    EXPECT_EQ(0b1001 + 16, instr.args.constant_register.reg);
+}
+
+TEST(bit_helpers, test1)
+{
+    uint16_t bits = 0b0101'0000'0000'0000;
+    EXPECT_EQ(0b110, avr::bits_at(bits, std::vector<size_t>{1,3,5}));
+}
+
+TEST(bit_helpers, test2)
+{
+    uint16_t bits = 0b0110'0101'1010'1100;
+    EXPECT_EQ(0b01100, avr::bits_range(bits, 0, 5));
+    EXPECT_EQ(0b0101, avr::bits_range(bits, 4, 8));
+    EXPECT_EQ(0b100, avr::bits_range(bits, 13, 16));
+}
+

@@ -16,7 +16,8 @@ namespace avr {
         JMP = 0b10'0101'0110,
         STS = 0b10'0100'1'0000,
         RET = 0b1001'0101'0000'1000,
-        CP  = 0b0000'01
+        CP  = 0b0000'01,
+        LDI = 0b1110
     };
 
     enum register_pair
@@ -53,6 +54,12 @@ namespace avr {
         uint8_t         register2;  // d register
     };
 
+    struct constant_register_args
+    {
+        uint8_t         constant;
+        uint8_t         reg;
+    };
+
     struct instruction
     {
         opcode          op;
@@ -62,6 +69,7 @@ namespace avr {
             address_args                address;
             register_address_args       reg_address;
             register1_register2_args    register1_register2;
+            constant_register_args      constant_register;
         } args;
 
         bool operator==(const instruction &) const;
@@ -69,6 +77,11 @@ namespace avr {
     };
 
     instruction decode(const byte_t *pc);
+
+    // bits are read LEFT TO RIGHT, indexed at 0
+    uint16_t bits_at(uint16_t bits, const std::vector<size_t>& locations);
+    // returns bits in range [min, max)
+    uint16_t bits_range(uint16_t bits, size_t min, size_t max);
 
     std::string mnemonic(const instruction &);
 

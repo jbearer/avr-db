@@ -1,6 +1,8 @@
 #include <bitset>
 #include <cstring>
 #include <string>
+#include <vector>
+#include <iostream>
 
 #include "avr/instruction.h"
 
@@ -51,9 +53,36 @@ address_t avr::register_pair_address(register_pair pair)
     return 24 + 2*pair;
 }
 
+<<<<<<< 74bdb8f990e08ce44b9231b89c72af18bcc3b0c9
 instruction avr::decode(const byte_t *pc)
+=======
+uint16_t avr::bits_at(uint16_t bits, const std::vector<size_t>& locations)
+{
+    uint16_t new_bits = 0;
+    for (auto location : locations) {
+        uint16_t new_bit = (bits >> (15 - location)) & 1;
+        new_bits = (new_bits << 1) | new_bit;
+    }
+    return new_bits;
+}
+
+uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
+{
+    size_t range = max - min;
+    uint16_t mask;
+    for (size_t i = 0; i < range; ++i) {
+        mask <<= 1;
+        mask |= 1;
+    }
+    return (bits >> (16 - max)) & mask;
+}
+
+instruction avr::decode(byte_t *pc)
+>>>>>>> added ldi and helper methods
 {
     instruction instr;
+
+    uint16_t word1 = (*pc << 8)| *(pc + 1);
 
     // 16-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
@@ -65,7 +94,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // 8-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode8 = *pc;
+    std::underlying_type_t<opcode> opcode8 = bits_range(word1, 0, 8);
     switch (opcode8) {
     case opcode::ADIW:
     case opcode::SBIW:
@@ -121,6 +150,18 @@ instruction avr::decode(const byte_t *pc)
         instr.args.register1_register2.register2 = ((*pc & 0b0001) << 4) | ((*(pc + 1) & 0XF0) >> 4);
         return instr;
         }
+
+    // contiguous 4-bit opcode
+    std::underlying_type_t<opcode> opcode4 = bits_range(word1, 0, 4);
+    switch (opcode4) {
+    case opcode::LDI:
+        instr.op = to_opcode(opcode4);
+        instr.size = 2;
+        instr.args.constant_register.constant = bits_at(word1, std::vector<size_t>{4,5,6,7,12,13,14,15});
+        instr.args.constant_register.reg = bits_range(word1, 8, 12) + 16;
+        return instr;
+    }
+
     throw invalid_instruction_error(pc);
 }
 
