@@ -3,7 +3,7 @@
 struct rduima {
     std::string port;
     rduima(std::string path) : port(path) {
-    	std::cout << "HEY" << endl;
+    	std::cout << "HEY" << std::endl;
     }
 
     char read(int address);
