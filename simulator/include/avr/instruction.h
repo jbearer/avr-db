@@ -15,7 +15,8 @@ namespace avr {
         CALL = 0b10'0101'0111,
         JMP = 0b10'0101'0110,
         STS = 0b10'0100'1'0000,
-        RET = 0b1001'0101'0000'1000
+        RET = 0b1001'0101'0000'1000,
+        CP  = 0b0000'01
     };
 
     enum register_pair
@@ -45,6 +46,13 @@ namespace avr {
         address_t       address;
     };
 
+    struct register1_register2_args
+    {
+        bool            carry;
+        uint8_t         register1;  // r register
+        uint8_t         register2;  // d register
+    };
+
     struct instruction
     {
         opcode          op;
@@ -53,6 +61,7 @@ namespace avr {
             constant_register_pair_args constant_register_pair;
             address_args                address;
             register_address_args       reg_address;
+            register1_register2_args    register1_register2;
         } args;
     };
 

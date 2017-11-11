@@ -95,7 +95,7 @@ TEST(decode, jmp)
 
 TEST(decode, sts)
 {
-
+    //                            oooo ooo rrrrr oooo kkkkkkkkkkkkkkkk
     auto instr = decode_raw<32>(0b1001'001'10101'0000'1010101010101010);
 
     ASSERT_EQ(opcode::STS, instr.op);
@@ -106,7 +106,17 @@ TEST(decode, sts)
 
 TEST(decode, ret)
 {
+    // just the opcode
     auto instr = decode_raw<16>(0b1001'0101'0000'1000);
     ASSERT_EQ(opcode::RET, instr.op);
     ASSERT_EQ(2, instr.size);
+}
+
+TEST(decode, cp)
+{   //                            oooo oo r ddddd rrrr
+    auto instr = decode_raw<16>(0b0000'01'0'10101'1100);
+    ASSERT_EQ(opcode::CP, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b01100, instr.args.register1_register2.register1);
+    EXPECT_EQ(0b10101, instr.args.register1_register2.register2);
 }

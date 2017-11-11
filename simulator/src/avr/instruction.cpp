@@ -98,6 +98,16 @@ instruction avr::decode(byte_t *pc)
         return instr;
     }
 
+    // discontiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
+    std::underlying_type_t<opcode> opcode6 = (*pc >> 2) & 0b0011'1111;
+    switch (opcode6) {
+    case opcode::CP:
+        instr.op = to_opcode(opcode6);
+        instr.size = 2;
+        instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);
+        instr.args.register1_register2.register2 = ((*pc & 0b0001) << 4) | ((*(pc + 1) & 0XF0) >> 4);
+        return instr;
+        }
     throw invalid_instruction_error(pc);
 }
 
