@@ -62,7 +62,5 @@ char rduima::write(int address, char byte) {
 
 int main() {
     rduima test("/dev/cu.usbmodem1421");
-    test.write(0x2A, 1);
-    cout << "HI" << endl;
-    return 0;
+    return test.write(0x2A, 1);
 }
