@@ -109,7 +109,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // discontiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
-    std::underlying_type_t<opcode> opcode6 = (*pc >> 2) & 0b0011'1111;
+    std::underlying_type_t<opcode> opcode6 = bits_range(word1, 0, 6);
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
