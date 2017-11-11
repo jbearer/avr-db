@@ -1,4 +1,5 @@
 #include <bitset>
+#include <cstring>
 #include <string>
 
 #include "avr/instruction.h"
@@ -15,7 +16,7 @@ static register_pair to_reg_pair(std::underlying_type_t<register_pair> raw)
     return static_cast<register_pair>(raw);
 }
 
-invalid_instruction_error::invalid_instruction_error(byte_t *pc)
+invalid_instruction_error::invalid_instruction_error(const byte_t *pc)
     : desc("invalid instruction: ")
 {
     desc += std::bitset<8>(*pc).to_string() + ' '
@@ -35,12 +36,22 @@ const char *invalid_instruction_error::what() const noexcept
     return desc.c_str();
 }
 
+bool instruction::operator==(const instruction & that) const
+{
+    return std::memcmp(this, &that, sizeof(*this)) == 0; // TODO ewwwwwwww
+}
+
+bool instruction::operator!=(const instruction & that) const
+{
+    return !(*this == that);
+}
+
 address_t avr::register_pair_address(register_pair pair)
 {
     return 24 + 2*pair;
 }
 
-instruction avr::decode(byte_t *pc)
+instruction avr::decode(const byte_t *pc)
 {
     instruction instr;
 
@@ -74,13 +85,15 @@ instruction avr::decode(byte_t *pc)
     switch (opcode10) {
     case opcode::CALL:
     case opcode::JMP:
-        instr.op = to_opcode(opcode10);
-        instr.size = 4;
-        instr.args.address.address = *(reinterpret_cast<uint16_t *>(pc) + 1);
-        instr.args.address.address |= (*(pc + 1) & 0b0000'0001) << 16;
-        instr.args.address.address |= (*(pc + 1) & 0b1111'0000) << (17-4);
-        instr.args.address.address |= (*pc & 1) << 21;
-        return instr;
+        {
+            // TODO assumes address is at most 16 bits (true on ATmega168, not on all AVR boards)
+            instr.op = to_opcode(opcode10);
+            instr.size = 4;
+            byte_t *addr_bytes = reinterpret_cast<byte_t *>(&instr.args.address.address);
+            addr_bytes[0] = *(pc + 3);
+            addr_bytes[1] = *(pc + 2);
+            return instr;
+        }
 
     // Not a 10-bit discontiguous opcode
     }
@@ -94,7 +107,7 @@ instruction avr::decode(byte_t *pc)
         instr.size = 4;
         instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
         instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
-        instr.args.reg_address.address = *(reinterpret_cast<uint16_t *>(pc + 2));
+        instr.args.reg_address.address = *(reinterpret_cast<const uint16_t *>(pc + 2));
         return instr;
     }
 

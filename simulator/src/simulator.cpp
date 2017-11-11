@@ -41,6 +41,8 @@ struct simulator_impl
             std::advance(mem_it, other_seg.address());
             std::copy(other_seg.data(), other_seg.data() + other_seg.size(), mem_it);
         }
+
+        reinterpret_cast<uint16_t &>(memory[SPL]) = board.ram_end - 2;
     }
 
     void set_breakpoint(address_t address) override
@@ -58,6 +60,11 @@ struct simulator_impl
         return memory[address];
     }
 
+    instruction next_instruction() const override
+    {
+        return decode(&text[pc]);
+    }
+
     void step() override
     {
         run_until([]() { return true; });
@@ -66,7 +73,7 @@ struct simulator_impl
     void next() override
     {
         auto cur_pc = pc;
-        auto instr = decode(text.data() + cur_pc);
+        auto instr = next_instruction();
         switch (instr.op) {
         case CALL:
             run_until([this, cur_pc, &instr]() { return pc == cur_pc + instr.size; }, instr);
@@ -85,14 +92,14 @@ private:
 
     void run_until(const std::function<bool()> & stop)
     {
-        run_until(stop, decode(text.data() + pc));
+        run_until(stop, next_instruction());
     }
 
     void run_until(const std::function<bool()> & stop, const instruction & first_instr)
     {
         execute(first_instr);
         while (!stop()) {
-            execute(decode(text.data() + pc));
+            execute(next_instruction());
         }
     }
 
@@ -116,15 +123,21 @@ private:
         switch (instr.op) {
         case ADIW:
             adiw(instr.args.constant_register_pair.pair, instr.args.constant_register_pair.constant);
+            pc += instr.size;
             break;
         case SBIW:
             sbiw(instr.args.constant_register_pair.pair, instr.args.constant_register_pair.constant);
+            pc += instr.size;
+            break;
+        case CALL:
+            call(instr.args.address.address);
+            break;
+        case JMP:
+            jmp(instr.args.address.address);
             break;
         default:
             throw unimplemented_error(instr);
         }
-
-        pc += instr.size;
     }
 
     void adiw(register_pair pair, uint16_t value)
@@ -157,10 +170,24 @@ private:
         adiw(pair, ~value + 1);
     }
 
+    void call(address_t addr)
+    {
+        uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
+        uint16_t & stack = reinterpret_cast<uint16_t &>(memory[sp]);
+        stack = pc;
+        sp -= 2;
+        pc = addr;
+    }
+
+    void jmp(address_t addr)
+    {
+        pc = addr;
+    }
+
     std::vector<byte_t>         text;
     std::vector<bool>           breakpoints;
     std::vector<byte_t>         memory;
-    address_t                   pc = 0;
+    uint16_t                    pc = 0;
     byte_t &                    sreg;
 };
 

@@ -63,16 +63,19 @@ namespace avr {
             register_address_args       reg_address;
             register1_register2_args    register1_register2;
         } args;
+
+        bool operator==(const instruction &) const;
+        bool operator!=(const instruction &) const;
     };
 
-    instruction decode(byte_t *pc);
+    instruction decode(const byte_t *pc);
 
     std::string mnemonic(const instruction &);
 
     struct invalid_instruction_error
         : std::exception
     {
-        invalid_instruction_error(byte_t *pc);
+        invalid_instruction_error(const byte_t *pc);
         invalid_instruction_error(const instruction &);
         const char *what() const noexcept override;
 

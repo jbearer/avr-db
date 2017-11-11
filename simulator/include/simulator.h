@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "avr/boards.h"
+#include "avr/instruction.h"
 #include "segment.h"
 
 namespace simulator {
@@ -26,6 +27,7 @@ namespace simulator {
         virtual void set_breakpoint(address_t) = 0;
         virtual void delete_breakpoint(address_t) = 0;
         virtual byte_t read(address_t) const = 0;
+        virtual avr::instruction next_instruction() const = 0;
         virtual void step() = 0;
         virtual void next() = 0;
         virtual void run() = 0;

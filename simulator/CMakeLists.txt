@@ -4,7 +4,7 @@ project(simulator CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
 
 include_directories(include)
 include_directories(../)
@@ -24,3 +24,4 @@ add_executable(test-simulator ${SIMULATOR_TEST_CXX_SOURCE})
 target_link_libraries(test-simulator simulator)
 target_link_libraries(test-simulator ${GTEST_BOTH_LIBRARIES})
 target_link_libraries(test-simulator ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(test-simulator PRIVATE test)

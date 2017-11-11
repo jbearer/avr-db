@@ -9,7 +9,9 @@ namespace avr {
     {
         SREG = 0x5F,
         R26 = 0x1A,
-        R27 = 0x1B
+        R27 = 0x1B,
+        SPL = 0x5D,
+        SPH = 0x5E
     };
 
     static constexpr reg X_LO = R26;
