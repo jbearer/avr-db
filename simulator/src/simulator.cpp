@@ -352,6 +352,15 @@ private:
 
     void cpi(uint8_t reg, uint8_t val)
     {
+        int16_t res = memory[reg] - val;
+
+        // TODO implement half-carry
+
+        toggle_sreg_flag(SREG_V,
+            res < std::numeric_limits<int8_t>::min() ||
+            res > std::numeric_limits<int8_t>::max());
+        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_C, val > memory[reg]);
 
     }
 
