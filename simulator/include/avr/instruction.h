@@ -14,7 +14,8 @@ namespace avr {
         SBIW = 0b1001'0111,
         CALL = 0b10'0101'0111,
         JMP = 0b10'0101'0110,
-        STS = 0b10'0100'1'0000
+        STS = 0b10'0100'1'0000,
+        RET = 0b1001'0101'0000'1000
     };
 
     enum register_pair

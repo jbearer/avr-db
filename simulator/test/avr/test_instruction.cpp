@@ -104,3 +104,9 @@ TEST(decode, sts)
     EXPECT_EQ(0b1010101010101010, instr.args.reg_address.address);
 }
 
+TEST(decode, ret)
+{
+    auto instr = decode_raw<16>(0b1001'0101'0000'1000);
+    ASSERT_EQ(opcode::RET, instr.op);
+    ASSERT_EQ(2, instr.size);
+}

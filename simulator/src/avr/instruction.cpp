@@ -44,6 +44,15 @@ instruction avr::decode(byte_t *pc)
 {
     instruction instr;
 
+    // 16-bit contiguous opcodes
+    std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
+    switch(opcode16) {
+    case opcode::RET:
+        instr.op = to_opcode(opcode16);
+        instr.size = 2;
+        return instr;
+    }
+
     // 8-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode8 = *pc;
     switch (opcode8) {
