@@ -83,7 +83,7 @@ instruction avr::decode(const byte_t *pc)
     bzero(&instr, sizeof(instr));
 
     // Start out with 16-bit instructions
-    uint16_t word1 = (*pc << 8)| *(pc + 1);
+    uint16_t word1 = *reinterpret_cast<const uint16_t *>(pc);
 
     // 16-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
