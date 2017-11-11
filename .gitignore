@@ -1,0 +1,8 @@
+*.eep
+*.hex
+*.i
+*.elf
+*.cmake
+*CMakeCache.txt
+*.lst
+*.s
