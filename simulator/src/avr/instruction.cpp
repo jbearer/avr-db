@@ -144,6 +144,8 @@ instruction avr::decode(const byte_t *pc)
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
+    case opcode::ROL:
+    case opcode::LSL:
         instr.op = to_opcode(opcode6);
         instr.size = 2;
         instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);

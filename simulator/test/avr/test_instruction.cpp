@@ -97,6 +97,24 @@ TEST(decode, cpc)
     EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
 }
 
+TEST(decode, rol)
+{
+    auto instr = decode_raw<16>(0b0000'11'0'01010'0110);
+    ASSERT_EQ(opcode::ROL, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
+    EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
+}
+
+TEST(decode, lsl)
+{
+    auto instr = decode_raw<16>(0b0001'11'0'01010'0110);
+    ASSERT_EQ(opcode::LSL, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
+    EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
+}
+
 TEST(decode, ldi)
 {
     //                            oooo KKKK dddd KKKK
