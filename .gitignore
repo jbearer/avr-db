@@ -3,6 +3,11 @@
 *.i
 *.elf
 *.cmake
-*CMakeCache.txt
 *.lst
 *.s
+*.a
+
+# cmake
+*CMakeFiles*
+*CMakeCache.txt
+*Makefile
