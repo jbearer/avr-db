@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "math.h"
 
 #include "avr/instruction.h"
 
@@ -129,6 +130,19 @@ instruction avr::decode(const byte_t *pc)
         instr.size = 2;
         instr.args.constant_register.constant = bits_at(word1, std::vector<size_t>{4,5,6,7,12,13,14,15});
         instr.args.constant_register.reg = bits_range(word1, 8, 12) + 16;
+        return instr;
+    case opcode::RJMP:
+        instr.op = to_opcode(opcode4);
+        instr.size = 2;
+        uint16_t signed_offset = bits_range(word1, 4, 16);
+        bool sign_bit = signed_offset >> 11;
+        uint16_t sign_mask = sign_bit << 11;
+        if (sign_bit){
+            std::cout<< "signed" << std::endl;
+            instr.args.offset12.offset = (~sign_mask & signed_offset) + -1*pow(2,11);
+        }
+        else
+            instr.args.offset12.offset = signed_offset;
         return instr;
     }
 

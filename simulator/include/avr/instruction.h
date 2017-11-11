@@ -22,7 +22,8 @@ namespace avr {
         LSL = 0b0000'11,
         LDI = 0b1110,
         LDS = 0b1001'000'0000,
-        BRGE = 0b1111'01'100
+        BRGE = 0b1111'01'100,
+        RJMP = 0b1100
     };
 
     enum register_pair
@@ -70,6 +71,11 @@ namespace avr {
         int8_t          offset;
     };
 
+    struct offset12_args
+    {
+        int16_t         offset;
+    };
+
     struct instruction
     {
         opcode          op;
@@ -81,6 +87,7 @@ namespace avr {
             register1_register2_args    register1_register2;
             constant_register_args      constant_register;
             offset_args                 offset;
+            offset12_args               offset12;
         } args;
 
         bool operator==(const instruction &) const;

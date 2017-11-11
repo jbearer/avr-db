@@ -133,6 +133,22 @@ TEST(decode, brge)
     EXPECT_EQ(0b0011011, instr.args.offset.offset);
 }
 
+TEST(decode, rjmp)
+{
+
+    auto instr = decode_raw<16>(0b1100'0001'1001'0110);
+    ASSERT_EQ(opcode::RJMP, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b0001'1001'0110, instr.args.offset12.offset);
+
+    // test signed
+    auto instr2 = decode_raw<16>(0b1100'1111'1111'1101);
+    ASSERT_EQ(opcode::RJMP, instr.op);
+    ASSERT_EQ(2, instr2.size);
+    EXPECT_EQ(-3, instr2.args.offset12.offset);
+
+}
+
 TEST(bit_helpers, test1)
 {
     uint16_t bits = 0b0101'0000'0000'0000;
