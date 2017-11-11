@@ -6,25 +6,25 @@
 using namespace std;
 
 char rduima::read(int address) {
-    ofstream file;
-    file.open(this->port);
+    ofstream writer;
+    writer.open(this->port);
 
-    if (file.is_open()) {
-        file << 0;
-        file << '\n';
-        file << address;
-        file << '\n';
-        file.close();
+    if (writer.is_open()) {
+        writer << 0;
+        writer << '\n';
+        writer << address;
+        writer << '\n';
+        writer.close();
     }
 
-    ifstream file;
-    file.open(this->port);
+    ifstream reader;
+    reader.open(this->port);
     char * buffer = new char[100];
 
-    if (file.is_open()) {
+    if (reader.is_open()) {
         while (buffer == 0) {
-            file.read(buffer, 1);
-            file.close();
+            reader.read(buffer, 1);
+            reader.close();
             return buffer[0];
         }
     }
@@ -33,27 +33,27 @@ char rduima::read(int address) {
 }
 
 char rduima::write(int address, char byte) {
-    ofstream file;
-    file.open(this->port);
+    ofstream writer;
+    writer.open(this->port);
 
-    if (file.is_open()) {
-        file << 0;
-        file << '\n';
-        file << address;
-        file << '\n';
-        file << byte;
-        file << '\n';
-        file.close();
+    if (writer.is_open()) {
+        writer << 0;
+        writer << '\n';
+        writer << address;
+        writer << '\n';
+        writer << byte;
+        writer << '\n';
+        writer.close();
     }
 
-    ifstream file;
-    file.open(this->port);
+    ifstream reader;
+    reader.open(this->port);
     char * buffer = new char[LARGE_NUM];
 
-    if (file.is_open()) {
+    if (reader.is_open()) {
         while (buffer == 0) {
-            file.read(buffer, 1);
-            file.close();
+            reader.read(buffer, 1);
+            reader.close();
             return buffer[0];
         }
     }
