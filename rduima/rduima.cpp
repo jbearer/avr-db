@@ -61,7 +61,7 @@ char rduima::write(int address, char byte) {
 }
 
 int main() {
-    rduima('/dev/cu.usbmodem1421');
-    rduima.write(0x2A, 1);
+    rduima test("/dev/cu.usbmodem1421");
+    test.write(0x2A, 1);
     return 0;
 }
