@@ -83,7 +83,7 @@ instruction avr::decode(const byte_t *pc)
     bzero(&instr, sizeof(instr));
 
     // Start out with 16-bit instructions
-    uint16_t word1 = *reinterpret_cast<const uint16_t *>(pc);//(*pc << 8)| *(pc + 1);
+    uint16_t word1 = (*pc << 8)| *(pc + 1);
 
     // 16-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
@@ -161,6 +161,18 @@ instruction avr::decode(const byte_t *pc)
         return instr;
     }
 
+    // contiguous 5-bit opcode
+    std::underlying_type_t<opcode> opcode5 = bits_range(word1, 0,5);
+    switch (opcode5) {
+    case opcode::OUT:
+        instr.op = to_opcode(opcode5);
+        instr.size = 1;
+        instr.args.ioaddress_register.ioaddress = bits_at(word1, std::vector<size_t>{5,6,12,13,14,15});
+        instr.args.ioaddress_register.reg = bits_range(word1, 7, 12);
+        return instr;
+    }
+
+
     ///// not a 16-bit instruction, try 32-bit instructions /////////
     uint16_t word2 = (*(pc + 2) << 8)| *(pc + 3);
 
@@ -231,6 +243,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "rjmp";
     case EOR:
         return "eor";
+    case OUT:
+        return "out";
     default:
         throw invalid_instruction_error(instr);
     }

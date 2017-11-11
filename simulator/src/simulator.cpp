@@ -178,6 +178,10 @@ private:
             eor(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
             pc += instr.size;
             break;
+        case OUT:
+            out(instr.args.ioaddress_register.ioaddress, instr.args.ioaddress_register.reg);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -353,6 +357,11 @@ private:
     void rjmp(int16_t offset)
     {
         pc += offset;
+    }
+
+    void out(int8_t ioaddress, int8_t reg)
+    {
+        memory[ioaddress + 0x20] = memory[reg];
     }
 
     std::vector<byte_t>         text;
