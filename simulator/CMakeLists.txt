@@ -11,3 +11,4 @@ include_directories(../)
 
 file(GLOB project_sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_library(simulator src/segment.cpp)
+add_executable(segment_test src/segment_test.cpp src/segment.cpp)
