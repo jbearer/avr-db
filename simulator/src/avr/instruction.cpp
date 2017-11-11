@@ -50,6 +50,7 @@ instruction avr::decode(byte_t *pc)
     case opcode::ADIW:
     case opcode::SBIW:
         instr.op = to_opcode(opcode8);
+        instr.size = 2;
         instr.args.constant_register_pair.pair = to_reg_pair((*(pc + 1) & 0b0011'0000) >> 4);
         instr.args.constant_register_pair.constant = (*(pc + 1)) & 0b0000'1111;
         instr.args.constant_register_pair.constant |= (*(pc + 1) & 0b1100'0000) >> 2;
@@ -65,6 +66,7 @@ instruction avr::decode(byte_t *pc)
     case opcode::CALL:
     case opcode::JMP:
         instr.op = to_opcode(opcode10);
+        instr.size = 4;
         instr.args.address.address = *(reinterpret_cast<uint16_t *>(pc) + 1);
         instr.args.address.address |= (*(pc + 1) & 0b0000'0001) << 16;
         instr.args.address.address |= (*(pc + 1) & 0b1111'0000) << (17-4);
@@ -72,6 +74,19 @@ instruction avr::decode(byte_t *pc)
         return instr;
 
     // Not a 10-bit discontiguous opcode
+    }
+
+    // 11-bit discontinuous opcodes (LDS and STS)
+    std::underlying_type_t<opcode> opcode11 = (*pc >> 1) << 4;  // left 7 bits
+    opcode11 |= (*(pc + 1) & 0x0F);                             // right 4 bits
+    switch (opcode11) {
+    case opcode::STS:
+        instr.op = to_opcode(opcode11);
+        instr.size = 4;
+        instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
+        instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
+        instr.args.reg_address.address = *(reinterpret_cast<uint16_t *>(pc + 2));
+        return instr;
     }
 
     throw invalid_instruction_error(pc);

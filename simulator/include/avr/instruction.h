@@ -14,6 +14,7 @@ namespace avr {
         SBIW = 0b1001'0111,
         CALL = 0b10'0101'0111,
         JMP = 0b10'0101'0110,
+        STS = 0b10'0100'1'0000
     };
 
     enum register_pair
@@ -37,6 +38,12 @@ namespace avr {
         address_t       address;
     };
 
+    struct register_address_args
+    {
+        uint8_t         reg;
+        address_t       address;
+    };
+
     struct instruction
     {
         opcode          op;
@@ -44,6 +51,7 @@ namespace avr {
         union {
             constant_register_pair_args constant_register_pair;
             address_args                address;
+            register_address_args       reg_address;
         } args;
     };
 
