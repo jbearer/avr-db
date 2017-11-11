@@ -79,7 +79,7 @@ uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
 instruction avr::decode(const byte_t *pc)
 {
     instruction instr;
-
+    bzero(&instr, sizeof(instr));
 
     // Start out with 16-bit instructions
     uint16_t word1 = (*pc << 8)| *(pc + 1);
