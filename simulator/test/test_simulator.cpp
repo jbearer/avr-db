@@ -368,3 +368,29 @@ TEST(brge, dont_branch)
 
     EXPECT_EQ(decode_raw<16>(sub), sim->next_instruction());
 }
+
+TEST(eor, eor)
+{
+    // ldi r16,1       oooo KKKK dddd KKKK
+    uint16_t ldi16 = 0b1110'0000'0000'0001;
+
+    // ldi r17,3       oooo KKKK dddd KKKK
+    uint16_t ldi17 = 0b1110'0000'0001'0011;
+
+    // eor r17,r16   oooo oo r ddddd rrrr
+    uint16_t eor = 0b0010'01'1'10001'0000;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi16);
+    instr_to_bytes(text_bytes, ldi17);
+    instr_to_bytes(text_bytes, eor);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(1^3, sim->read(17));
+}

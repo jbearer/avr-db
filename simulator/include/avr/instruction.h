@@ -23,7 +23,8 @@ namespace avr {
         LDI = 0b1110,
         LDS = 0b1001'000'0000,
         BRGE = 0b1111'01'100,
-        RJMP = 0b1100
+        RJMP = 0b1100,
+        EOR = 0b0010'01
     };
 
     enum register_pair

@@ -174,6 +174,10 @@ private:
             rjmp(instr.args.offset12.offset);
             pc += instr.size;
             break;
+        case EOR:
+            eor(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -315,6 +319,18 @@ private:
         update_sreg_sign();
 
         rd = res;
+    }
+
+    void eor(uint8_t r1, uint8_t r2)
+    {
+        auto & rr = memory[r1];
+        auto & rd = memory[r2];
+        rd ^= rr;
+
+        sreg &= ~SREG_V;
+        toggle_sreg_flag(SREG_N, rd & (1 << 7));
+        toggle_sreg_flag(SREG_Z, !rd);
+        update_sreg_sign();
     }
 
     void ldi(uint8_t reg, uint8_t val)

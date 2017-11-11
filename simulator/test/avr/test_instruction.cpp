@@ -168,3 +168,12 @@ TEST(bit_helpers, test2)
     EXPECT_EQ(0b100, avr::bits_range(bits, 13, 16));
 }
 
+TEST(decode, eor)
+{
+    // eor r3,r5                  oooo oo r ddddd rrrr
+    auto instr = decode_raw<16>(0b0010'01'0'00101'0011);
+    ASSERT_EQ(opcode::EOR, instr.op);
+    ASSERT_EQ(1, instr.size);
+    EXPECT_EQ(0b00011, instr.args.register1_register2.register1);
+    EXPECT_EQ(0b00101, instr.args.register1_register2.register2);
+}

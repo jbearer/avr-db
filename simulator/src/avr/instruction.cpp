@@ -115,6 +115,7 @@ instruction avr::decode(const byte_t *pc)
     case opcode::CPC:
     case opcode::ROL:
     case opcode::LSL:
+    case opcode::EOR:
         instr.op = to_opcode(opcode6);
         instr.size = 1;
         instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);
@@ -228,6 +229,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "lds";
     case RJMP:
         return "rjmp";
+    case EOR:
+        return "eor";
     default:
         throw invalid_instruction_error(instr);
     }
