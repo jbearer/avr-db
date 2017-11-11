@@ -162,6 +162,10 @@ private:
             ldi(instr.args.constant_register.reg, instr.args.constant_register.constant);
             pc += instr.size;
             break;
+        case CPI:
+            cpi(instr.args.constant_register.reg, instr.args.constant_register.constant);
+            pc += instr.size;
+            break;
         case LDS:
             lds(instr.args.reg_address.reg, instr.args.reg_address.address);
             pc += instr.size;
@@ -340,6 +344,11 @@ private:
     void ldi(uint8_t reg, uint8_t val)
     {
         memory[reg] = val;
+    }
+
+    void cpi(uint8_t reg, uint8_t val)
+    {
+
     }
 
     void lds(uint8_t reg, address_t address)

@@ -21,11 +21,12 @@ namespace avr {
         ROL = 0b0001'11,
         LSL = 0b0000'11,
         LDI = 0b1110,
+        CPI = 0b0011,
         LDS = 0b1001'000'0000,
         BRGE = 0b1111'01'100,
         RJMP = 0b1100,
         EOR = 0b0010'01,
-        OUT = 0b1011'1
+        OUT = 0b1011'1,
     };
 
     enum register_pair

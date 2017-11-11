@@ -127,6 +127,7 @@ instruction avr::decode(const byte_t *pc)
     std::underlying_type_t<opcode> opcode4 = bits_range(word1, 0, 4);
     switch (opcode4) {
     case opcode::LDI:
+    case opcode::CPI:
         instr.op = to_opcode(opcode4);
         instr.size = 1;
         instr.args.constant_register.constant = bits_at(word1, std::vector<size_t>{4,5,6,7,12,13,14,15});
