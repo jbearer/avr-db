@@ -64,9 +64,26 @@ TEST(adiw, sum)
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
     sim->step();
 
-    uint8_t lo_x = sim->read(X_LO);
-    uint8_t hi_x = sim->read(X_HI);
+    byte_t lo_x = sim->read(X_LO);
+    byte_t hi_x = sim->read(X_HI);
 
     EXPECT_EQ(22, lo_x);
     EXPECT_EQ(0,  hi_x);
+}
+
+TEST(sbiw, sum)
+{
+    // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t instr =    0b1001'0111'01'01'0110;
+
+    auto text = instr_segment(instr);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    sim->step();
+
+    int16_t x;
+    byte_t *bytes = reinterpret_cast<byte_t *>(&x);
+    bytes[0] = sim->read(X_LO);
+    bytes[1] = sim->read(X_HI);
+
+    EXPECT_EQ(-22, x);
 }

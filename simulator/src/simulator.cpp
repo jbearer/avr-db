@@ -96,22 +96,6 @@ private:
         }
     }
 
-    uint16_t read_register_pair(register_pair pair)
-    {
-        uint16_t reg;
-        byte_t *reg_bytes = reinterpret_cast<byte_t *>(&reg);
-        auto reg_addr = register_pair_address(pair);
-        reg_bytes[0] = memory[reg_addr + 1];
-        reg_bytes[1] = memory[reg_addr];
-        return reg;
-    }
-
-    void write_register_pair(register_pair pair, uint16_t value)
-    {
-        auto reg_addr = register_pair_address(pair);
-        reinterpret_cast<uint16_t &>(memory[reg_addr]) = value;
-    }
-
     void toggle_sreg_flag(sreg_flag bit, bool test)
     {
         if (test) {
@@ -133,6 +117,9 @@ private:
         case ADIW:
             adiw(instr.args.constant_register_pair.pair, instr.args.constant_register_pair.constant);
             break;
+        case SBIW:
+            sbiw(instr.args.constant_register_pair.pair, instr.args.constant_register_pair.constant);
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -142,7 +129,7 @@ private:
 
     void adiw(register_pair pair, uint16_t value)
     {
-        uint16_t reg = read_register_pair(pair);
+        uint16_t & reg = reinterpret_cast<uint16_t &>(memory[register_pair_address(pair)]);
         uint32_t result = reg + value;
         int32_t sresult = static_cast<int32_t>(result);
 
@@ -162,7 +149,12 @@ private:
 
         update_sreg_sign();
 
-        write_register_pair(pair, static_cast<uint16_t>(result));
+        reg = static_cast<uint16_t>(result);
+    }
+
+    void sbiw(register_pair pair, uint16_t value)
+    {
+        adiw(pair, ~value + 1);
     }
 
     std::vector<byte_t>         text;
