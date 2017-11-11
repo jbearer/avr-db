@@ -9,10 +9,10 @@ namespace simulator {
 
     struct segment
     {
-        virtual size_t size() const;
-        virtual address_t address() const;
-        virtual byte_t *data();
-        virtual const byte_t *data() const;
+        virtual size_t size() const = 0;
+        virtual address_t address() const = 0;
+        virtual byte_t *data() = 0;
+        virtual const byte_t *data() const = 0;
         virtual ~segment() {}
     };
 
