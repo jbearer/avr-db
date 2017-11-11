@@ -88,7 +88,7 @@ TEST(adiw, sum)
     std::vector<byte_t> text_bytes;
     instr_to_bytes(text_bytes, instr);
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
     sim->step();
 
     byte_t lo_x = sim->read(X_LO);
@@ -107,7 +107,7 @@ TEST(sbiw, sum)
     instr_to_bytes(text_bytes, instr);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
     sim->step();
 
     int16_t x;
@@ -134,7 +134,7 @@ TEST(call, call)
     instr_to_bytes(text_bytes, add);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     auto sp1 = stack_pointer(*sim);
     sim->step();
@@ -163,7 +163,7 @@ TEST(ret, after_call)
     instr_to_bytes(text_bytes, ret);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -187,7 +187,7 @@ TEST(jmp, jmp)
     instr_to_bytes(text_bytes, add);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
@@ -206,7 +206,7 @@ TEST(sts, sts)
     instr_to_bytes(text_bytes, sts);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -226,7 +226,7 @@ TEST(rol, rol)
     instr_to_bytes(text_bytes, rol);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -246,7 +246,7 @@ TEST(lsl, lsl)
     instr_to_bytes(text_bytes, lsl);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -262,7 +262,7 @@ TEST(ldi, ldi)
     instr_to_bytes(text_bytes, instr);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
 
@@ -282,7 +282,7 @@ TEST(lds, lds)
     instr_to_bytes(text_bytes, lds);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -320,7 +320,7 @@ TEST(brge, do_branch)
     instr_to_bytes(text_bytes, add);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();
@@ -359,7 +359,7 @@ TEST(brge, dont_branch)
     instr_to_bytes(text_bytes, add);
 
     auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
     sim->step();
     sim->step();

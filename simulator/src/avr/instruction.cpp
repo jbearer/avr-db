@@ -83,14 +83,14 @@ instruction avr::decode(const byte_t *pc)
     bzero(&instr, sizeof(instr));
 
     // Start out with 16-bit instructions
-    uint16_t word1 = (*pc << 8)| *(pc + 1);
+    uint16_t word1 = *reinterpret_cast<const uint16_t *>(pc);//(*pc << 8)| *(pc + 1);
 
     // 16-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
     switch(opcode16) {
     case opcode::RET:
         instr.op = to_opcode(opcode16);
-        instr.size = 2;
+        instr.size = 1;
         return instr;
     }
 
@@ -100,7 +100,7 @@ instruction avr::decode(const byte_t *pc)
     case opcode::ADIW:
     case opcode::SBIW:
         instr.op = to_opcode(opcode8);
-        instr.size = 2;
+        instr.size = 1;
         instr.args.constant_register_pair.pair = to_reg_pair(bits_range(word1, 10, 12));
         instr.args.constant_register_pair.constant = bits_at(word1, std::vector<size_t>{8,9,12,13,14,15});
         return instr;
@@ -116,7 +116,7 @@ instruction avr::decode(const byte_t *pc)
     case opcode::ROL:
     case opcode::LSL:
         instr.op = to_opcode(opcode6);
-        instr.size = 2;
+        instr.size = 1;
         instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);
         instr.args.register1_register2.register2 = ((*pc & 0b0001) << 4) | ((*(pc + 1) & 0XF0) >> 4);
         return instr;
@@ -127,13 +127,13 @@ instruction avr::decode(const byte_t *pc)
     switch (opcode4) {
     case opcode::LDI:
         instr.op = to_opcode(opcode4);
-        instr.size = 2;
+        instr.size = 1;
         instr.args.constant_register.constant = bits_at(word1, std::vector<size_t>{4,5,6,7,12,13,14,15});
         instr.args.constant_register.reg = bits_range(word1, 8, 12) + 16;
         return instr;
     case opcode::RJMP:
         instr.op = to_opcode(opcode4);
-        instr.size = 2;
+        instr.size = 1;
         uint16_t signed_offset = bits_range(word1, 4, 16);
         bool sign_bit = signed_offset >> 11;
         uint16_t sign_mask = sign_bit << 11;
@@ -149,7 +149,7 @@ instruction avr::decode(const byte_t *pc)
     switch (opcode9) {
     case opcode::BRGE:
         instr.op = to_opcode(opcode9);
-        instr.size = 2;
+        instr.size = 1;
         uint8_t signed_offset = bits_range(word1, 6, 13);
         bool sign_bit = signed_offset >> 6;
         uint8_t sign_mask = sign_bit << 6;
@@ -172,7 +172,7 @@ instruction avr::decode(const byte_t *pc)
         {
             // TODO assumes address is at most 16 bits (true on ATmega168, not on all AVR boards)
             instr.op = to_opcode(opcode10);
-            instr.size = 4;
+            instr.size = 2;
             byte_t *addr_bytes = reinterpret_cast<byte_t *>(&instr.args.address.address);
             addr_bytes[0] = *(pc + 3);
             addr_bytes[1] = *(pc + 2);
@@ -189,7 +189,7 @@ instruction avr::decode(const byte_t *pc)
     case opcode::STS:
     case opcode::LDS:
         instr.op = to_opcode(opcode11);
-        instr.size = 4;
+        instr.size = 2;
         instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
         instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
         instr.args.reg_address.address = word2; //*(reinterpret_cast<const uint16_t *>(pc + 2));
@@ -226,6 +226,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "ldi";
     case LDS:
         return "lds";
+    case RJMP:
+        return "rjmp";
     default:
         throw invalid_instruction_error(instr);
     }

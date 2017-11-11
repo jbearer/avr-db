@@ -34,6 +34,6 @@ namespace simulator {
     };
 
     std::unique_ptr<simulator> program_with_segments(
-        const avr::board & board, const segment & text, const std::vector<segment> & other_segs);
+        const avr::board & board, const segment & text, const std::vector<segment *> & other_segs);
 
 }
