@@ -17,6 +17,16 @@ void repl(simulator::simulator & sim)
         case 's':
             sim.step();
             break;
+        case 'b':
+            {
+                address_t addr;
+                std::cin >> std::hex >> addr;
+                sim.set_breakpoint(addr);
+                break;
+            }
+        case 'c':
+            sim.run();
+            break;
         }
         std::cout << avr::mnemonic(sim.next_instruction()) << '\n';
     }

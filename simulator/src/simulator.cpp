@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <iostream>
+
 #include "avr/boards.h"
 #include "avr/instruction.h"
 #include "avr/register.h"
@@ -37,9 +39,9 @@ struct simulator_impl
         std::copy(text_seg.data(), text_seg.data() + text_seg.size(), text_it);
 
         for (auto other_seg : other_segs) {
-            auto mem_it = memory.begin();
-            std::advance(mem_it, other_seg->address());
-            std::copy(other_seg->data(), other_seg->data() + other_seg->size(), mem_it);
+            auto flash_it = text.begin();
+            std::advance(flash_it, other_seg->address());
+            std::copy(other_seg->data(), other_seg->data() + other_seg->size(), flash_it);
         }
 
         reinterpret_cast<uint16_t &>(memory[SPL]) = board.ram_end - 2;
@@ -85,7 +87,7 @@ struct simulator_impl
 
     void run() override
     {
-        run_until([this]() { return breakpoints[pc]; });
+        run_until([this]() { return breakpoints[2*pc]; });
     }
 
 private:
@@ -131,6 +133,10 @@ private:
             break;
         case CALL:
             call(instr.args.address.address);
+            break;
+        case RCALL:
+            rcall(instr.args.offset12.offset);
+            pc += instr.size;
             break;
         case RET:
             ret();
@@ -242,6 +248,15 @@ private:
         pc = addr;
     }
 
+    void rcall(int16_t offset)
+    {
+        uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
+        uint16_t & stack = reinterpret_cast<uint16_t &>(memory[sp]);
+        stack = pc + 2; // Instruction after the call
+        sp -= 2;
+        pc += offset;
+    }
+
     void ret()
     {
         uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
@@ -264,14 +279,14 @@ private:
         auto rr = memory[r1];
         auto rd = memory[r2];
 
-        int16_t res = rd - rr;
+        int16_t res = (int16_t)rd - (int16_t)rr;
         // TODO implement half-carry flag
 
         toggle_sreg_flag(SREG_V,
             res < std::numeric_limits<int8_t>::min() ||
             res > std::numeric_limits<int8_t>::max());
 
-        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_Z, !(res & 0xFF));
         toggle_sreg_flag(SREG_C, rr > rd);
         toggle_sreg_flag(SREG_N, res & (1<<7));
         update_sreg_sign();
@@ -283,14 +298,14 @@ private:
         auto rd = memory[r2];
         auto carry = !!(sreg & SREG_C);
 
-        int16_t res = rd - rr - carry;
+        int16_t res = (int16_t)rd - (int16_t)rr - (int16_t)carry;
         // TODO implement half-carry flag
 
         toggle_sreg_flag(SREG_V,
             res < std::numeric_limits<int8_t>::min() ||
             res > std::numeric_limits<int8_t>::max());
 
-        if (res) {
+        if (res & 0xFF) {
             sreg &= ~SREG_Z;
         }
 
@@ -360,14 +375,14 @@ private:
 
     void cpi(uint8_t reg, uint8_t val)
     {
-        int16_t res = memory[reg] - val;
+        int16_t res = (int16_t)memory[reg] - (int16_t)val;
 
         // TODO implement half-carry
 
         toggle_sreg_flag(SREG_V,
             res < std::numeric_limits<int8_t>::min() ||
             res > std::numeric_limits<int8_t>::max());
-        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_Z, !(res & 0xFF));
         toggle_sreg_flag(SREG_C, val > memory[reg]);
         update_sreg_sign();
     }

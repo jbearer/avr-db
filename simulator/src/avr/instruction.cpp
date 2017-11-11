@@ -134,6 +134,7 @@ instruction avr::decode(const byte_t *pc)
         instr.args.constant_register.reg = bits_range(word1, 8, 12) + 16;
         return instr;
     case opcode::RJMP:
+    case opcode::RCALL:
         instr.op = to_opcode(opcode4);
         instr.size = 1;
         uint16_t signed_offset = bits_range(word1, 4, 16);
@@ -248,6 +249,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "lds";
     case RJMP:
         return "rjmp";
+    case RCALL:
+        return "rcall";
     case EOR:
         return "eor";
     case OUT:

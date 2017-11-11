@@ -2,8 +2,8 @@
  * Simple example program demonstrating simple branching and arithmetic instructions.
  */
 
-static int x;       // Uninitialized global (.bss)
-static int y = 1;   // Initialized global   (.data)
+static char x;       // Uninitialized global (.bss)
+static char y = 1;   // Initialized global   (.data)
 
 int main()
 {
