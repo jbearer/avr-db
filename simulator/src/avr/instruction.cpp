@@ -198,8 +198,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // 11-bit discontinuous opcodes (LDS and STS)
-    std::underlying_type_t<opcode> opcode11 = (*pc >> 1) << 4;  // left 7 bits
-    opcode11 |= (*(pc + 1) & 0x0F);                             // right 4 bits
+    std::underlying_type_t<opcode> opcode11 = bits_at(word1, std::vector<size_t>{0,1,2,3,4,5,6,12,13,14,15});
     switch (opcode11) {
     case opcode::STS:
     case opcode::LDS:
@@ -208,6 +207,11 @@ instruction avr::decode(const byte_t *pc)
         instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
         instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
         instr.args.reg_address.address = word2; //*(reinterpret_cast<const uint16_t *>(pc + 2));
+        return instr;
+    case opcode::STX:
+        instr.op = to_opcode(opcode11);
+        instr.size = 1;
+        instr.args.register_args.reg = bits_range(word1, 7, 12);
         return instr;
     }
 
