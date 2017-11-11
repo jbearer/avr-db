@@ -170,6 +170,9 @@ private:
             brge(instr.args.offset.offset);
             pc += instr.size;
             break;
+        case RJMP:
+            rjmp(instr.args.offset12.offset);
+            pc += instr.size;
         default:
             throw unimplemented_error(instr);
         }
@@ -329,6 +332,13 @@ private:
             pc += offset;
         }
     }
+
+    void rjmp(int16_t offset)
+    {
+        pc += offset;
+    }
+
+
 
     std::vector<byte_t>         text;
     std::vector<bool>           breakpoints;
