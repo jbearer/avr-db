@@ -50,13 +50,14 @@ char rduima::write(int address, char byte) {
 
     ifstream reader;
     reader.open(this->port);
-    char * buffer = new char[100];
+    char * buffer = new char[1];
 
     //cout << reader.is_open() << endl;
     if (reader.is_open()) {
         while (buffer == 0) {
-            cout << reader.read(buffer, 1) << endl;
+            reader.read(buffer, 1);
             reader.close();
+            cout << buffer[0] << endl;
             return buffer[0];
         }
     }
