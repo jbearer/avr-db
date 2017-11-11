@@ -52,7 +52,7 @@ char rduima::write(int address, char byte) {
     reader.open(this->port);
     char * buffer = new char[1];
 
-    //cout << reader.is_open() << endl;
+    cout << reader.is_open() << endl;
     if (reader.is_open()) {
         while (buffer == 0) {
             reader.read(buffer, 1);
