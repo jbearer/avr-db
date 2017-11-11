@@ -361,7 +361,7 @@ private:
             res > std::numeric_limits<int8_t>::max());
         toggle_sreg_flag(SREG_Z, !res);
         toggle_sreg_flag(SREG_C, val > memory[reg]);
-
+        update_sreg_sign();
     }
 
     void lds(uint8_t reg, address_t address)
