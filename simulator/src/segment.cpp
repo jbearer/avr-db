@@ -51,16 +51,9 @@ struct text_segment : segment {
         return address_;
     }
 
-    byte_t *data(address_t address)
+    const byte_t *data() const
     {
-        size_t offset = address - address_;
-        return &memory_[offset];
-    }
-
-    const byte_t *data(address_t address) const
-    {
-        size_t offset = address - address_;
-        return &memory_[offset];
+        return memory_.data();
     }
 
 

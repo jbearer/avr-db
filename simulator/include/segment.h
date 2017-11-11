@@ -16,8 +16,7 @@ namespace simulator {
     {
         virtual size_t size() const = 0;
         virtual address_t address() const = 0;
-        virtual byte_t *data(address_t address) = 0;
-        virtual const byte_t *data(address_t address) const = 0;
+        virtual const byte_t *data() const = 0;
         virtual ~segment() {}
     };
 
