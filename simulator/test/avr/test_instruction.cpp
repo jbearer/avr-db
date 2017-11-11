@@ -125,6 +125,14 @@ TEST(decode, ldi)
     EXPECT_EQ(0b1001 + 16, instr.args.constant_register.reg);
 }
 
+TEST(decode, brge)
+{   //                            oooo oo kkkkkkk ooo
+    auto instr = decode_raw<16>(0b1111'01'0011011'100);
+    ASSERT_EQ(opcode::BRGE, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b0011011, instr.args.offset.offset);
+}
+
 TEST(bit_helpers, test1)
 {
     uint16_t bits = 0b0101'0000'0000'0000;
