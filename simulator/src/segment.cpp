@@ -6,22 +6,78 @@ using namespace simulator;
 
 struct text_segment : segment {
 
-    size_t size() const
+    text_segment(std::string path, simulator::section_type_t section_type)
     {
-        return 0;
+        ELFIO::elfio reader;
+        if (!reader.load(path)) {
+            std::cout << "loading file failed" << std::endl;
+        } else {
+            std::cout << "successfully loaded " << path << std::endl;
+        }
+
+        ELFIO::section* section;
+        if (section_type == section_type_t::DATA) {
+            section = reader.sections[".data"];
+        }
+        else if (section_type == section_type_t::TEXT) {
+            section = reader.sections[".text"];
+        }
+        else {
+            std::cout << "ERRROR: unsupported section type" << std::endl;
+        }
+
+        const char* section_start = section->get_data();
+
+        for (size_t i = 0; i < section->get_size(); ++i) {
+            memory_.push_back(*(section_start + i));
+        }
+
+        size_ = section->get_size();
+        address_ = section->get_address();
+
+        for (auto& data : memory_) {
+            std::cout << std::hex << (long) data;
+        }
+
+    }
+
+    virtual size_t size() const
+    {
+        return size_;
+    }
+
+    virtual address_t address() const
+    {
+        return address_;
+    }
+
+    byte_t *data(address_t address)
+    {
+        size_t offset = address - address_;
+        return &memory_[offset];
+    }
+
+    const byte_t *data(address_t address) const
+    {
+        size_t offset = address - address_;
+        return &memory_[offset];
     }
 
 
 private:
 
-    static const size_t memory_size = 1024;
-
     size_t size_;
     // offset address for the beginning of the segment in virtual memory
     address_t address_;
-    std::array<byte_t, memory_size> memory;     // holds the physical memory
-
+    std::vector<byte_t> memory_;     // holds the physical memory vector
 };
+
+
+std::unique_ptr<simulator::segment> simulator::map_segment(
+    std::string fname, simulator::section_type_t section/*, size_t offset, size_t size, address_t address*/)
+{
+    return std::make_unique<text_segment>(fname, section);
+}
 
 
 
