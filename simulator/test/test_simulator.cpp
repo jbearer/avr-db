@@ -44,26 +44,20 @@ private:
     std::vector<byte_t> _data;
 };
 
-void instrs_to_bytes(std::vector<byte_t> &) {}
-
-template<class... Args>
-void instrs_to_bytes(std::vector<byte_t> & v, uint16_t instr, Args... args)
-{
-    byte_t *bytes = reinterpret_cast<byte_t *>(&instr);
-    v.push_back(bytes[1]);
-    v.push_back(bytes[0]);
-    instrs_to_bytes(v, args...);
-}
-
-template<class... Args>
-void instrs_to_bytes(std::vector<byte_t> & v, uint32_t instr, Args... args)
+void instr_to_bytes(std::vector<byte_t> & v, uint32_t instr)
 {
     byte_t *bytes = reinterpret_cast<byte_t *>(&instr);
     v.push_back(bytes[3]);
     v.push_back(bytes[2]);
     v.push_back(bytes[1]);
     v.push_back(bytes[0]);
-    instrs_to_bytes(v, args...);
+}
+
+void instr_to_bytes(std::vector<byte_t> & v, uint16_t instr)
+{
+    byte_t *bytes = reinterpret_cast<byte_t *>(&instr);
+    v.push_back(bytes[1]);
+    v.push_back(bytes[0]);
 }
 
 std::unique_ptr<segment> empty_segment()
@@ -71,13 +65,10 @@ std::unique_ptr<segment> empty_segment()
     return std::make_unique<mock_segment>(0, 0, std::vector<byte_t>());
 }
 
-template<class... Instrs>
-std::unique_ptr<segment> text_segment(Instrs... instrs)
+std::unique_ptr<segment> text_segment(const std::vector<byte_t> & bytes)
 {
-    std::vector<byte_t> seg;
-    instrs_to_bytes(seg, instrs...);
-    auto size = seg.size();
-    return std::make_unique<mock_segment>(size, 0, std::move(seg));
+    auto size = bytes.size();
+    return std::make_unique<mock_segment>(size, 0, std::move(bytes));
 }
 
 uint16_t stack_pointer(const simulator::simulator & sim)
@@ -94,7 +85,9 @@ TEST(adiw, sum)
     // adiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t instr =    0b1001'0110'01'01'0110;
 
-    auto text = text_segment(instr);
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, instr);
+    auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
     sim->step();
 
@@ -110,7 +103,10 @@ TEST(sbiw, sum)
     // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t instr =    0b1001'0111'01'01'0110;
 
-    auto text = text_segment(instr);
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, instr);
+
+    auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
     sim->step();
 
@@ -132,7 +128,12 @@ TEST(call, call)
     // adiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t add =      0b1001'0110'01'01'0110;
 
-    auto text = text_segment(call, unreachable, add);
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, call);
+    instr_to_bytes(text_bytes, unreachable);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
 
     auto sp1 = stack_pointer(*sim);
@@ -156,7 +157,12 @@ TEST(ret, after_call)
     // ret
     uint16_t ret = 0b1001'0101'0000'1000;
 
-    auto text = text_segment(call, sub, ret);
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, call);
+    instr_to_bytes(text_bytes, sub);
+    instr_to_bytes(text_bytes, ret);
+
+    auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
 
     sim->step();
@@ -175,9 +181,34 @@ TEST(jmp, jmp)
     // adiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t add =      0b1001'0110'01'01'0110;
 
-    auto text = text_segment(jmp, unreachable, add);
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, jmp);
+    instr_to_bytes(text_bytes, unreachable);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
 
     sim->step();
     EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
+}
+
+TEST(sts, sts)
+{
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    // sts r26,500   oooo ooo rrrrr oooo kkkkkkkkkkkkkkkk
+    uint32_t sts = 0b1001'001'11010'0000'0000000111110100;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, add);
+    instr_to_bytes(text_bytes, sts);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+    EXPECT_EQ(22, sim->read(0b0000000111110100));
 }

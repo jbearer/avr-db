@@ -176,12 +176,12 @@ std::string avr::mnemonic(const instruction & instr)
         return "sbiw";
     case CALL:
         return "call";
+    case RET:
+        return "ret";
     case JMP:
         return "jmp";
     case STS:
         return "sts";
-    case RET:
-        return "ret";
     case CP:
         return "cp";
     case CPC:

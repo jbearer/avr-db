@@ -138,6 +138,10 @@ private:
         case JMP:
             jmp(instr.args.address.address);
             break;
+        case STS:
+            sts(instr.args.reg_address.reg, instr.args.reg_address.address);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -192,6 +196,11 @@ private:
     void jmp(address_t addr)
     {
         pc = addr;
+    }
+
+    void sts(uint8_t reg, address_t address)
+    {
+        memory[address] = memory[reg];
     }
 
     std::vector<byte_t>         text;
