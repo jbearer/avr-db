@@ -15,30 +15,31 @@ struct text_segment : segment {
             std::cout << "successfully loaded " << path << std::endl;
         }
 
-        ELFIO::section* section;
-        if (section_type == section_type_t::DATA) {
-            section = reader.sections[".data"];
-        }
-        else if (section_type == section_type_t::TEXT) {
-            section = reader.sections[".text"];
-        }
-        else {
-            std::cout << "ERRROR: unsupported section type" << std::endl;
-        }
-
-        const char* section_start = section->get_data();
-
-        for (size_t i = 0; i < section->get_size(); ++i) {
-            memory_.push_back(*(section_start + i));
-        }
-
-        size_ = section->get_size();
-        address_ = section->get_address();
-
-        for (auto& data : memory_) {
-            std::cout << std::hex << (long) data;
+        // TODO: THIS IS BAD!!! relies on the segments being ordered the same
+        // way each time.  Eventually we should fis this.
+        ELFIO::segment* elf_segment;
+        switch (section_type) {
+            case TEXT:
+                elf_segment = reader.segments[0];
+                break;
+            case DATA:
+                elf_segment = reader.segments[1];
+                break;
+            case BSS:
+                elf_segment = reader.segments[2];
+                break;
+            default:
+                std::cout << "ERROR: no name for this type" << std::endl;
         }
 
+        const char* segment_start = elf_segment->get_data();
+
+        for (size_t i = 0; i < elf_segment->get_file_size(); ++i) {
+            memory_.push_back(*(segment_start + i));
+        }
+
+        size_ = elf_segment->get_file_size();
+        address_ = elf_segment->get_physical_address();
     }
 
     virtual size_t size() const
@@ -67,7 +68,7 @@ private:
 
 
 std::unique_ptr<simulator::segment> simulator::map_segment(
-    std::string fname, simulator::section_type_t section/*, size_t offset, size_t size, address_t address*/)
+    std::string fname, simulator::section_type_t section)
 {
     return std::make_unique<text_segment>(fname, section);
 }

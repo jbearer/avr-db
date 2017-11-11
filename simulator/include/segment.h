@@ -8,7 +8,8 @@ namespace simulator {
 
     enum section_type_t {
         DATA,
-        TEXT
+        TEXT,
+        BSS
     };
 
     struct segment

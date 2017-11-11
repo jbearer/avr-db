@@ -7,7 +7,10 @@ int main()
 {
     std::cout << "hi there, you're doing great :)" << std::endl;
     std::string path = "simple.elf";
-    map_segment(path, section_type_t::TEXT);
+    auto segment = map_segment(path, section_type_t::BSS);
+
+    std::cout << std::hex << (long) segment->address() << std::endl;
+    std::cout << std::hex << (long) segment->size() << std::endl;
 
     return 0;
 }
