@@ -137,10 +137,8 @@ instruction avr::decode(const byte_t *pc)
         uint16_t signed_offset = bits_range(word1, 4, 16);
         bool sign_bit = signed_offset >> 11;
         uint16_t sign_mask = sign_bit << 11;
-        if (sign_bit){
-            std::cout<< "signed" << std::endl;
+        if (sign_bit)
             instr.args.offset12.offset = (~sign_mask & signed_offset) + -1*pow(2,11);
-        }
         else
             instr.args.offset12.offset = signed_offset;
         return instr;
@@ -152,7 +150,13 @@ instruction avr::decode(const byte_t *pc)
     case opcode::BRGE:
         instr.op = to_opcode(opcode9);
         instr.size = 2;
-        instr.args.offset.offset = bits_range(word1, 6, 13);
+        uint8_t signed_offset = bits_range(word1, 6, 13);
+        bool sign_bit = signed_offset >> 6;
+        uint8_t sign_mask = sign_bit << 6;
+        if (sign_bit)
+            instr.args.offset.offset = (~sign_mask & signed_offset) + -1*pow(2,6);
+        else
+            instr.args.offset.offset = signed_offset;
         return instr;
     }
 

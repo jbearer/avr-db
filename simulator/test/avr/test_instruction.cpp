@@ -131,6 +131,11 @@ TEST(decode, brge)
     ASSERT_EQ(opcode::BRGE, instr.op);
     ASSERT_EQ(2, instr.size);
     EXPECT_EQ(0b0011011, instr.args.offset.offset);
+
+    auto instr2 = decode_raw<16>(0b1111'01'1111000'100);
+    ASSERT_EQ(opcode::BRGE, instr2.op);
+    ASSERT_EQ(2, instr2.size);
+    EXPECT_EQ(-8, instr2.args.offset.offset);
 }
 
 TEST(decode, rjmp)
@@ -143,7 +148,7 @@ TEST(decode, rjmp)
 
     // test signed
     auto instr2 = decode_raw<16>(0b1100'1111'1111'1101);
-    ASSERT_EQ(opcode::RJMP, instr.op);
+    ASSERT_EQ(opcode::RJMP, instr2.op);
     ASSERT_EQ(2, instr2.size);
     EXPECT_EQ(-3, instr2.args.offset12.offset);
 
