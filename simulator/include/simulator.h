@@ -3,6 +3,7 @@
 #include <exception>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "avr/boards.h"
 #include "segment.h"
@@ -31,6 +32,6 @@ namespace simulator {
     };
 
     std::unique_ptr<simulator> program_with_segments(
-        const avr::board & board, const segment & text, const segment & data);
+        const avr::board & board, const segment & text, const std::vector<segment> & other_segs);
 
 }

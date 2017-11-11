@@ -1,12 +1,12 @@
 #include "segment.h"
 #include "elfio/elfio.hpp"
-#include <array>
+#include <vector>
 
 using namespace simulator;
 
-struct text_segment : segment {
+struct segment_impl : segment {
 
-    text_segment(std::string path, simulator::section_type_t section_type)
+    segment_impl(std::string path, simulator::section_type_t section_type)
     {
         ELFIO::elfio reader;
         if (!reader.load(path)) {
@@ -70,7 +70,7 @@ private:
 std::unique_ptr<simulator::segment> simulator::map_segment(
     std::string fname, simulator::section_type_t section)
 {
-    return std::make_unique<text_segment>(fname, section);
+    return std::make_unique<segment_impl>(fname, section);
 }
 
 

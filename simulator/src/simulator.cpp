@@ -25,7 +25,7 @@ const char *unimplemented_error::what() const noexcept
 struct simulator_impl
     : simulator::simulator
 {
-    simulator_impl(const avr::board & board, const segment & text_seg, const segment & data_seg)
+    simulator_impl(const avr::board & board, const segment & text_seg, const std::vector<segment> & other_segs)
         : text(board.flash_end)
         , breakpoints(board.flash_end, false)
         , memory(board.ram_end)
@@ -34,9 +34,11 @@ struct simulator_impl
         std::advance(text_it, text_seg.address());
         std::copy(text_seg.data(), text_seg.data() + text_seg.size(), text_it);
 
-        auto mem_it = memory.begin();
-        std::advance(mem_it, data_seg.address());
-        std::copy(data_seg.data(), data_seg.data() + data_seg.size(), mem_it);
+        for (auto & other_seg : other_segs) {
+            auto mem_it = memory.begin();
+            std::advance(mem_it, other_seg.address());
+            std::copy(other_seg.data(), other_seg.data() + other_seg.size(), mem_it);
+        }
     }
 
     void set_breakpoint(address_t address) override
@@ -107,3 +109,11 @@ private:
     std::vector<byte_t>         memory;
     address_t                   pc;
 };
+
+std::unique_ptr<simulator::simulator> simulator::program_with_segments(
+    const avr::board & board, const segment & text, const std::vector<segment> & other_segs)
+{
+    return std::make_unique<simulator_impl>(board, text, other_segs);
+}
+
+
