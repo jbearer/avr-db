@@ -18,8 +18,8 @@ namespace avr {
         RET = 0b1001'0101'0000'1000,
         CP  = 0b0000'01,    // possible that these are in the wrong order
         CPC = 0b0001'01,
-        ROL = 0b0000'11,
-        LSL = 0b0001'11,
+        ROL = 0b0001'11,
+        LSL = 0b0000'11,
         LDI = 0b1110,
         LDS = 0b1001'000'0000
     };

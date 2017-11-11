@@ -142,6 +142,30 @@ private:
             sts(instr.args.reg_address.reg, instr.args.reg_address.address);
             pc += instr.size;
             break;
+        case CP:
+            cp(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+            pc += instr.size;
+            break;
+        case CPC:
+            cpc(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+            pc += instr.size;
+            break;
+        case ROL:
+            adc(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+            pc += instr.size;
+            break;
+        case LSL:
+            add(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+            pc += instr.size;
+            break;
+        case LDI:
+            ldi(instr.args.constant_register.reg, instr.args.constant_register.constant);
+            pc += instr.size;
+            break;
+        case LDS:
+            lds(instr.args.reg_address.reg, instr.args.reg_address.address);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -201,6 +225,98 @@ private:
     void sts(uint8_t reg, address_t address)
     {
         memory[address] = memory[reg];
+    }
+
+    void cp(uint8_t r1, uint8_t r2)
+    {
+        auto rd = memory[r1];
+        auto rr = memory[r2];
+
+        int16_t res = rd - rr;
+        // TODO implement half-carry flag
+
+        toggle_sreg_flag(SREG_V,
+            res < std::numeric_limits<int8_t>::min() ||
+            res > std::numeric_limits<int8_t>::max());
+
+        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_C, rr > rd);
+        toggle_sreg_flag(SREG_N, res & (1<<7));
+        update_sreg_sign();
+    }
+
+    void cpc(uint8_t r1, uint8_t r2)
+    {
+        auto rd = memory[r1];
+        auto rr = memory[r2];
+        auto carry = !!(sreg & SREG_C);
+
+        int16_t res = rd - rr - carry;
+        // TODO implement half-carry flag
+
+        toggle_sreg_flag(SREG_V,
+            res < std::numeric_limits<int8_t>::min() ||
+            res > std::numeric_limits<int8_t>::max());
+
+        if (res) {
+            sreg &= ~SREG_Z;
+        }
+
+        toggle_sreg_flag(SREG_C, rr + carry > rd);
+        toggle_sreg_flag(SREG_N, res & (1<<7));
+        update_sreg_sign();
+    }
+
+    void add(uint8_t r1, uint8_t r2)
+    {
+        auto & rd = memory[r1];
+        auto & rr = memory[r2];
+
+        uint16_t res = rd + rr;
+
+        // TODO implement half-carry flag
+
+        toggle_sreg_flag(SREG_V,
+            res < std::numeric_limits<int8_t>::min() ||
+            res > std::numeric_limits<int8_t>::max());
+
+        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_N, res & (1 << 7));
+        toggle_sreg_flag(SREG_C, res & (1 << 8));
+        update_sreg_sign();
+
+        rd = res;
+    }
+
+    void adc(uint8_t r1, uint8_t r2)
+    {
+        auto & rd = memory[r1];
+        auto & rr = memory[r2];
+
+        uint16_t res = rd + rr + !!(sreg & SREG_C);
+
+        // TODO implement half-carry flag
+
+        toggle_sreg_flag(SREG_V,
+            res < std::numeric_limits<int8_t>::min() ||
+            res > std::numeric_limits<int8_t>::max());
+
+        toggle_sreg_flag(SREG_Z, !res);
+        toggle_sreg_flag(SREG_N, res & (1 << 7));
+        toggle_sreg_flag(SREG_C, res & (1 << 8));
+        update_sreg_sign();
+
+        rd = res;
+    }
+
+    void ldi(uint8_t reg, uint8_t val)
+    {
+        memory[reg] = val;
+    }
+
+    void lds(uint8_t reg, address_t address)
+    {
+        memory[reg] = memory[address];
     }
 
     std::vector<byte_t>         text;

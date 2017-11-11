@@ -20,6 +20,7 @@ namespace avr {
     enum sreg_flag
         : byte_t
     {
+        SREG_H = 0b0010'0000,
         SREG_S = 0b0001'0000,
         SREG_V = 0b0000'1000,
         SREG_N = 0b0000'0100,

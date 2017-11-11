@@ -212,3 +212,81 @@ TEST(sts, sts)
     sim->step();
     EXPECT_EQ(22, sim->read(0b0000000111110100));
 }
+
+TEST(rol, rol)
+{
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    // rol r26       opop'op'r'ddddd'rrrr
+    uint16_t rol = 0b0001'11'1'11010'1010;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, add);
+    instr_to_bytes(text_bytes, rol);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+    EXPECT_EQ(0b0101100, sim->read(26));
+}
+
+TEST(lsl, lsl)
+{
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    // lsl r26       opop'op'r'ddddd'rrrr
+    uint16_t lsl = 0b0000'11'1'11010'1010;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, add);
+    instr_to_bytes(text_bytes, lsl);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+    EXPECT_EQ(0b0101100, sim->read(26));
+}
+
+TEST(ldi, ldi)
+{
+    // ldi r25,0x6A    oooo KKKK dddd KKKK
+    uint16_t instr = 0b1110'0110'1001'1010;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, instr);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+
+    EXPECT_EQ(0x6A, sim->read(25));
+}
+
+TEST(lds, lds)
+{
+    // ldi r25,0x6A    oooo KKKK dddd KKKK
+    uint16_t ldi = 0b1110'0110'1001'1010;
+
+    // lds r10,25    oooo ooo rrrrr oooo kkkk kkkk kkkk kkkk
+    uint32_t lds = 0b1001'000'01010'0000'0000'0000'0001'1001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, lds);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(0x6A, sim->read(25));
+    EXPECT_EQ(0x6A, sim->read(10));
+}
