@@ -36,15 +36,15 @@ struct simulator_impl
     {
         auto text_it = text.begin();
         std::advance(text_it, text_seg.address());
-        std::copy(text_seg.data(), text_seg.data() + text_seg.size(), text_it);
+        auto text_words = text_seg.data<uint16_t>();
+        std::copy(text_words, text_words + text_seg.count<uint16_t>(), text_it);
 
         for (auto other_seg : other_segs) {
             auto flash_it = text.begin();
             std::advance(flash_it, other_seg->address());
-            std::copy(other_seg->data(), other_seg->data() + other_seg->size(), flash_it);
+            auto data_words = other_seg->data<uint16_t>();
+            std::copy(data_words, data_words + other_seg->count<uint16_t>(), flash_it);
         }
-
-        reinterpret_cast<uint16_t &>(memory[SPL]) = board.ram_end - 2;
     }
 
     void set_breakpoint(address_t address) override
@@ -64,7 +64,7 @@ struct simulator_impl
 
     instruction next_instruction() const override
     {
-        return decode(&text[2*pc]);
+        return decode(&text[pc]);
     }
 
     void step() override
@@ -87,7 +87,7 @@ struct simulator_impl
 
     void run() override
     {
-        run_until([this]() { return breakpoints[2*pc]; });
+        run_until([this]() { return breakpoints[pc]; });
     }
 
 private:
@@ -419,8 +419,8 @@ private:
     void lpm(uint8_t reg)
     {
         auto & z = reinterpret_cast<uint16_t &>(memory[Z_LO]);
-        auto address = (2*(z & 0x7F)) + !!(z & (1 << 15));
-        memory[reg] = text[address];
+        uint16_t word = text[z & 0x7FFF];
+        memory[reg] = (z & (1 << 15)) ? (word & 0xFF00) >> 8 : word & 0xFF;
         ++z;
     }
 
@@ -431,11 +431,11 @@ private:
         ++x;
     }
 
-    std::vector<byte_t>         text;
-    std::vector<bool>           breakpoints;
-    std::vector<byte_t>         memory;
-    uint16_t                    pc = 0;
-    byte_t &                    sreg;
+    std::vector<uint16_t>   text;
+    std::vector<bool>       breakpoints;
+    std::vector<uint8_t>    memory;
+    uint16_t                pc = 0;
+    byte_t &                sreg;
 };
 
 std::unique_ptr<simulator::simulator> simulator::program_with_segments(

@@ -16,7 +16,7 @@ namespace avr {
     };
 
     static const board atmega168(
-        1*kilobyte,     // ram_end TODO is this right?
-        16*kilobyte     // flash_end
+        1*kilobyte,         // ram_end TODO is this right?
+        (16*kilobyte)/2     // flash_end
     );
 }

@@ -25,28 +25,16 @@ namespace testing {
     template<>
     inline avr::instruction decode_raw<16>(uint16_t raw)
     {
-        byte_t *bytes = reinterpret_cast<byte_t *>(&raw);
-        byte_t pc[2];
-
-        // Convert from little-endian
-        pc[0] = bytes[1];
-        pc[1] = bytes[0];
-
-        return avr::decode(pc);
+        return avr::decode(&raw);
     }
 
     template<>
     inline avr::instruction decode_raw<32>(uint32_t raw)
     {
-        byte_t *bytes = reinterpret_cast<byte_t *>(&raw);
-        byte_t pc[4];
-
-        // Convert from little-endian
-        pc[0] = bytes[3];
-        pc[1] = bytes[2];
-        pc[2] = bytes[1];
-        pc[3] = bytes[0];
-
-        return avr::decode(pc);
+        uint16_t words[2];
+        auto raw_words = reinterpret_cast<uint16_t *>(&raw);
+        words[0] = raw_words[1];
+        words[1] = raw_words[0];
+        return avr::decode(words);
     }
 }

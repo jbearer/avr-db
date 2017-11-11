@@ -8,6 +8,7 @@ namespace avr {
         : address_t
     {
         SREG = 0x5F,
+        R2 = 0x02,
         R26 = 0x1A,
         R27 = 0x1B,
         R28 = 0x1C,

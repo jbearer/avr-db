@@ -52,7 +52,7 @@ struct segment_impl : segment {
         return address_;
     }
 
-    const byte_t *data() const
+    const byte_t *bytes() const
     {
         return memory_.data();
     }

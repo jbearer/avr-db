@@ -33,7 +33,7 @@ struct mock_segment
         return _address;
     }
 
-    const byte_t *data() const override
+    const byte_t *bytes() const override
     {
         return _data.data();
     }
@@ -47,17 +47,17 @@ private:
 void instr_to_bytes(std::vector<byte_t> & v, uint32_t instr)
 {
     byte_t *bytes = reinterpret_cast<byte_t *>(&instr);
-    v.push_back(bytes[3]);
     v.push_back(bytes[2]);
-    v.push_back(bytes[1]);
+    v.push_back(bytes[3]);
     v.push_back(bytes[0]);
+    v.push_back(bytes[1]);
 }
 
 void instr_to_bytes(std::vector<byte_t> & v, uint16_t instr)
 {
     byte_t *bytes = reinterpret_cast<byte_t *>(&instr);
-    v.push_back(bytes[1]);
     v.push_back(bytes[0]);
+    v.push_back(bytes[1]);
 }
 
 std::unique_ptr<segment> empty_segment()
@@ -120,6 +120,12 @@ TEST(sbiw, sum)
 
 TEST(call, call)
 {
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
     // call 6         opopopo'kkkkk'opo'k'kkkkkkkkkkkkkkkk
     uint32_t call = 0b1001010'00000'111'0'0000000000000110;
 
@@ -129,6 +135,8 @@ TEST(call, call)
     uint16_t add =      0b1001'0110'01'01'0110;
 
     std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
     instr_to_bytes(text_bytes, call);
     instr_to_bytes(text_bytes, unreachable);
     instr_to_bytes(text_bytes, add);
@@ -136,18 +144,27 @@ TEST(call, call)
     auto text = text_segment(text_bytes);
     auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
 
+    sim->step();
+    sim->step();
+
     auto sp1 = stack_pointer(*sim);
     sim->step();
     auto sp2 = stack_pointer(*sim);
 
     EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
     EXPECT_EQ(sp1 - 2, sp2);
-    EXPECT_EQ(4, sim->read(sp1));
+    EXPECT_EQ(5, sim->read(sp1));
     EXPECT_EQ(0, sim->read(sp1 + 1));
 }
 
 TEST(ret, after_call)
 {
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
     // call 6         opopopo'kkkkk'opo'k'kkkkkkkkkkkkkkkk
     uint32_t call = 0b1001010'00000'111'0'0000000000000110;
 
@@ -158,6 +175,8 @@ TEST(ret, after_call)
     uint16_t ret = 0b1001'0101'0000'1000;
 
     std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
     instr_to_bytes(text_bytes, call);
     instr_to_bytes(text_bytes, sub);
     instr_to_bytes(text_bytes, ret);
@@ -167,14 +186,16 @@ TEST(ret, after_call)
 
     sim->step();
     sim->step();
+    sim->step();
+    sim->step();
 
     EXPECT_EQ(decode_raw<16>(sub), sim->next_instruction());
 }
 
 TEST(jmp, jmp)
 {
-    // jmp 6         opopopo'kkkkk'opo'k'kkkkkkkkkkkkkkkk
-    uint32_t jmp = 0b1001010'00000'110'0'0000000000000110;
+    // jmp 3         opopopo'kkkkk'opo'k'kkkkkkkkkkkkkkkk
+    uint32_t jmp = 0b1001010'00000'110'0'0000000000000011;
 
     uint16_t unreachable = 0b1001'0111'01'01'0110;
 
@@ -302,8 +323,8 @@ TEST(brge, do_branch)
     // r17,r16      oooo oo r ddddd rrrr
     uint16_t cp = 0b0001'01'1'10001'0000;
 
-    // brge 2         oooo oo kkkkkkk ooo
-    uint16_t brge = 0b1111'01'0000010'100;
+    // brge 1         oooo oo kkkkkkk ooo
+    uint16_t brge = 0b1111'01'0000001'100;
 
     // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t sub =      0b1001'0111'01'01'0110;
@@ -341,8 +362,8 @@ TEST(brge, dont_branch)
     // r16,r17      oooo oo r ddddd rrrr
     uint16_t cp = 0b0001'01'1'10000'0001;
 
-    // brge 2         oooo oo kkkkkkk ooo
-    uint16_t brge = 0b1111'01'0000010'100;
+    // brge 1         oooo oo kkkkkkk ooo
+    uint16_t brge = 0b1111'01'0000001'100;
 
     // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t sub =      0b1001'0111'01'01'0110;
@@ -394,3 +415,57 @@ TEST(eor, eor)
 
     EXPECT_EQ(1^3, sim->read(17));
 }
+
+TEST(lpm, low_byte)
+{
+    // ldi LO_Z,255  oooo KKKK dddd KKKK
+    uint16_t ldi = 0b1110'1111'1110'1111;
+
+    // lpm r2        oooo ooo ddddd oooo
+    uint16_t lpm = 0b1001'000'00010'0101;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, lpm);
+
+    auto text = text_segment(text_bytes);
+    auto data = std::make_unique<mock_segment>(2, 255, std::vector<byte_t>{1,2});
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>{data.get()});
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(1, sim->read(R2));
+    EXPECT_EQ(0, sim->read(Z_LO));
+    EXPECT_EQ(1, sim->read(Z_HI));
+}
+
+TEST(lpm, high_byte)
+{
+    // ldi LO_Z,255     oooo KKKK dddd KKKK
+    uint16_t ldi_lo = 0b1110'1111'1110'1111;
+
+    // ldi HI_Z,0x80    oooo KKKK dddd KKKK
+    uint16_t ldi_hi = 0b1110'1000'1111'0000;
+
+    // lpm r2        oooo ooo ddddd oooo
+    uint16_t lpm = 0b1001'000'00010'0101;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_lo);
+    instr_to_bytes(text_bytes, ldi_hi);
+    instr_to_bytes(text_bytes, lpm);
+
+    auto text = text_segment(text_bytes);
+    auto data = std::make_unique<mock_segment>(2, 255, std::vector<byte_t>{1,2});
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>{data.get()});
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(2, sim->read(R2));
+    EXPECT_EQ(0, sim->read(Z_LO));
+    EXPECT_EQ(0x81, sim->read(Z_HI));
+}
+

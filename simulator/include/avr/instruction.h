@@ -114,7 +114,7 @@ namespace avr {
         bool operator!=(const instruction &) const;
     };
 
-    instruction decode(const byte_t *pc);
+    instruction decode(const uint16_t *pc);
 
     // bits are read LEFT TO RIGHT, indexed at 0
     uint16_t bits_at(uint16_t bits, const std::vector<size_t>& locations);
@@ -126,7 +126,7 @@ namespace avr {
     struct invalid_instruction_error
         : std::exception
     {
-        invalid_instruction_error(const byte_t *pc);
+        invalid_instruction_error(const uint16_t *pc);
         invalid_instruction_error(const instruction &);
         const char *what() const noexcept override;
 

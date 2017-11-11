@@ -19,13 +19,13 @@ static register_pair to_reg_pair(std::underlying_type_t<register_pair> raw)
     return static_cast<register_pair>(raw);
 }
 
-invalid_instruction_error::invalid_instruction_error(const byte_t *pc)
+invalid_instruction_error::invalid_instruction_error(const uint16_t *pc)
     : desc("invalid instruction: ")
 {
     desc += std::bitset<8>(*pc).to_string() + ' '
+          + std::bitset<8>(*pc >> 8).to_string() + ' '
           + std::bitset<8>(*(pc + 1)).to_string() + ' '
-          + std::bitset<8>(*(pc + 2)).to_string() + ' '
-          + std::bitset<8>(*(pc + 3)).to_string();
+          + std::bitset<8>(*(pc + 1) >> 8).to_string();
 }
 
 invalid_instruction_error::invalid_instruction_error(const instruction & instr)
@@ -48,8 +48,6 @@ bool instruction::operator!=(const instruction & that) const
 {
     return !(*this == that);
 }
-
-
 
 address_t avr::register_pair_address(register_pair pair)
 {
@@ -77,16 +75,13 @@ uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
     return (bits >> (16 - max)) & mask;
 }
 
-instruction avr::decode(const byte_t *pc)
+instruction avr::decode(const uint16_t *pc)
 {
     instruction instr;
     bzero(&instr, sizeof(instr));
 
-    // Start out with 16-bit instructions
-    uint16_t word1 = *reinterpret_cast<const uint16_t *>(pc);
-
     // 16-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode16 = word1;
+    std::underlying_type_t<opcode> opcode16 = *pc;
     switch(opcode16) {
     case opcode::RET:
         instr.op = to_opcode(opcode16);
@@ -95,21 +90,21 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // 8-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode8 = word1 & 0xFF00;
+    std::underlying_type_t<opcode> opcode8 = *pc & 0xFF00;
     switch (opcode8) {
     case opcode::ADIW:
     case opcode::SBIW:
         instr.op = to_opcode(opcode8);
         instr.size = 1;
-        instr.args.constant_register_pair.pair = to_reg_pair(bits_range(word1, 10, 12));
-        instr.args.constant_register_pair.constant = bits_at(word1, std::vector<size_t>{8,9,12,13,14,15});
+        instr.args.constant_register_pair.pair = to_reg_pair(bits_range(*pc, 10, 12));
+        instr.args.constant_register_pair.constant = bits_at(*pc, std::vector<size_t>{8,9,12,13,14,15});
         return instr;
 
     // Not an 8-bit opcode, try to match the next opcode type
     }
 
     // discontiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
-    std::underlying_type_t<opcode> opcode6 = word1 & 0xFC00;
+    std::underlying_type_t<opcode> opcode6 = *pc & 0xFC00;
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
@@ -118,102 +113,96 @@ instruction avr::decode(const byte_t *pc)
     case opcode::EOR:
         instr.op = to_opcode(opcode6);
         instr.size = 1;
-        instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);
-        instr.args.register1_register2.register2 = ((*pc & 0b0001) << 4) | ((*(pc + 1) & 0XF0) >> 4);
+        instr.args.register1_register2.register1 = bits_at(*pc, std::vector<size_t>{6,12,13,14,15});
+        instr.args.register1_register2.register2 = bits_range(*pc, 7, 12);
         return instr;
     }
 
     // contiguous 4-bit opcode
-    std::underlying_type_t<opcode> opcode4 = word1 & 0xF000;
+    std::underlying_type_t<opcode> opcode4 = *pc & 0xF000;
     switch (opcode4) {
     case opcode::LDI:
     case opcode::CPI:
         instr.op = to_opcode(opcode4);
         instr.size = 1;
-        instr.args.constant_register.constant = bits_at(word1, std::vector<size_t>{4,5,6,7,12,13,14,15});
-        instr.args.constant_register.reg = bits_range(word1, 8, 12) + 16;
+        instr.args.constant_register.constant = bits_at(*pc, std::vector<size_t>{4,5,6,7,12,13,14,15});
+        instr.args.constant_register.reg = bits_range(*pc, 8, 12) + 16;
         return instr;
     case opcode::RJMP:
     case opcode::RCALL:
-        instr.op = to_opcode(opcode4);
-        instr.size = 1;
-        uint16_t signed_offset = bits_range(word1, 4, 16);
-        bool sign_bit = signed_offset >> 11;
-        uint16_t sign_mask = sign_bit << 11;
-        if (sign_bit)
-            instr.args.offset12.offset = (~sign_mask & signed_offset) + -1*pow(2,11);
-        else
-            instr.args.offset12.offset = signed_offset;
+        {
+            instr.op = to_opcode(opcode4);
+            instr.size = 1;
+            uint16_t signed_offset = bits_range(*pc, 4, 16);
+            bool sign_bit = signed_offset >> 11;
+            uint16_t sign_mask = sign_bit << 11;
+            if (sign_bit)
+                instr.args.offset12.offset = (~sign_mask & signed_offset) + -1*pow(2,11);
+            else
+                instr.args.offset12.offset = signed_offset;
+        }
         return instr;
     }
 
     // discontiguous 9-bit branch opcodes
-    std::underlying_type_t<opcode> opcode9 = word1 & 0b1111'1100'0000'0111;
+    std::underlying_type_t<opcode> opcode9 = *pc & 0b1111'1100'0000'0111;
     switch (opcode9) {
     case opcode::BRGE:
     case opcode::BRNE:
-        instr.op = to_opcode(opcode9);
-        instr.size = 1;
-        uint8_t signed_offset = bits_range(word1, 6, 13);
-        bool sign_bit = signed_offset >> 6;
-        uint8_t sign_mask = sign_bit << 6;
-        if (sign_bit)
-            instr.args.offset.offset = (~sign_mask & signed_offset) + -1*pow(2,6);
-        else
-            instr.args.offset.offset = signed_offset;
+        {
+            instr.op = to_opcode(opcode9);
+            instr.size = 1;
+            uint8_t signed_offset = bits_range(*pc, 6, 13);
+            bool sign_bit = signed_offset >> 6;
+            uint8_t sign_mask = sign_bit << 6;
+            if (sign_bit)
+                instr.args.offset.offset = (~sign_mask & signed_offset) + -1*pow(2,6);
+            else
+                instr.args.offset.offset = signed_offset;
+        }
         return instr;
     }
 
     // contiguous 5-bit opcode
-    std::underlying_type_t<opcode> opcode5 = word1 & 0xF800;
+    std::underlying_type_t<opcode> opcode5 = *pc & 0xF800;
     switch (opcode5) {
     case opcode::OUT:
         instr.op = to_opcode(opcode5);
         instr.size = 1;
-        instr.args.ioaddress_register.ioaddress = bits_at(word1, std::vector<size_t>{5,6,12,13,14,15});
-        instr.args.ioaddress_register.reg = bits_range(word1, 7, 12);
+        instr.args.ioaddress_register.ioaddress = bits_at(*pc, std::vector<size_t>{5,6,12,13,14,15});
+        instr.args.ioaddress_register.reg = bits_range(*pc, 7, 12);
         return instr;
     }
 
-
-    ///// not a 16-bit instruction, try 32-bit instructions /////////
-    uint16_t word2 = (*(pc + 2) << 8)| *(pc + 3);
-
     // 10-bit discontiguous opcodes (CALL and JMP)
-    std::underlying_type_t<opcode> opcode10 = word1 & 0b1111'1110'0000'1110;
-    opcode10 |= (*pc & 0b1111'1110) << 2;
+    std::underlying_type_t<opcode> opcode10 = *pc & 0b1111'1110'0000'1110;
     switch (opcode10) {
     case opcode::CALL:
     case opcode::JMP:
-        {
-            // TODO assumes address is at most 16 bits (true on ATmega168, not on all AVR boards)
-            instr.op = to_opcode(opcode10);
-            instr.size = 2;
-            byte_t *addr_bytes = reinterpret_cast<byte_t *>(&instr.args.address.address);
-            addr_bytes[0] = *(pc + 3);
-            addr_bytes[1] = *(pc + 2);
-            return instr;
-        }
+        // TODO assumes address is at most 16 bits (true on ATmega168, not on all AVR boards)
+        instr.op = to_opcode(opcode10);
+        instr.size = 2;
+        instr.args.address.address = *(pc + 1);
+        return instr;
 
     // Not a 10-bit discontiguous opcode
     }
 
     // 11-bit discontinuous opcodes (LDS and STS)
-    std::underlying_type_t<opcode> opcode11 = word1 & 0b1111'1110'0000'1111;
+    std::underlying_type_t<opcode> opcode11 = *pc & 0b1111'1110'0000'1111;
     switch (opcode11) {
     case opcode::STS:
     case opcode::LDS:
         instr.op = to_opcode(opcode11);
         instr.size = 2;
-        instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
-        instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
-        instr.args.reg_address.address = word2; //*(reinterpret_cast<const uint16_t *>(pc + 2));
+        instr.args.reg_address.reg = bits_range(*pc, 7, 12);
+        instr.args.reg_address.address = *(pc + 1);
         return instr;
     case opcode::LPM:
     case opcode::STX:
         instr.op = to_opcode(opcode11);
         instr.size = 1;
-        instr.args.reg.reg = bits_range(word1, 7, 12);
+        instr.args.reg.reg = bits_range(*pc, 7, 12);
         return instr;
     }
 

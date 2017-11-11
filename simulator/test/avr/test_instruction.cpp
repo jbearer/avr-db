@@ -13,7 +13,7 @@ TEST(decode, adiw)
     auto instr = decode_raw<16>(0b1001'0110'01'10'0110);
 
     ASSERT_EQ(opcode::ADIW, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(Y, instr.args.constant_register_pair.pair);
     EXPECT_EQ(0b0001'0110, instr.args.constant_register_pair.constant);
 }
@@ -24,7 +24,7 @@ TEST(decode, sbiw)
     auto instr = decode_raw<16>(0b1001'0111'01'01'0110);
 
     ASSERT_EQ(opcode::SBIW, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(X, instr.args.constant_register_pair.pair);
     EXPECT_EQ(0b0001'0110, instr.args.constant_register_pair.constant);
 }
@@ -35,7 +35,7 @@ TEST(decode, call)
     auto instr = decode_raw<32>(0b1001010'00000'111'0'0000111111110000);
 
     ASSERT_EQ(opcode::CALL, instr.op);
-    ASSERT_EQ(4, instr.size);
+    ASSERT_EQ(2, instr.size);
     EXPECT_EQ(0x0FF0, instr.args.address.address);
 }
 
@@ -45,7 +45,7 @@ TEST(decode, jmp)
     auto instr = decode_raw<32>(0b1001010'00000'110'0'0000111111110000);
 
     ASSERT_EQ(opcode::JMP, instr.op);
-    ASSERT_EQ(4, instr.size);
+    ASSERT_EQ(2, instr.size);
     EXPECT_EQ(0x0FF0, instr.args.address.address);
 }
 
@@ -55,7 +55,7 @@ TEST(decode, sts)
     auto instr = decode_raw<32>(0b1001'001'10101'0000'1010'1010'1010'1010);
 
     ASSERT_EQ(opcode::STS, instr.op);
-    ASSERT_EQ(4, instr.size);
+    ASSERT_EQ(2, instr.size);
     EXPECT_EQ(0b10101, instr.args.reg_address.reg);
     EXPECT_EQ(0b1010'1010'1010'1010, instr.args.reg_address.address);
 }
@@ -66,7 +66,7 @@ TEST(decode, lds)
     auto instr = decode_raw<32>(0b1001'000'00101'0000'1010'1010'1010'1000);
 
     ASSERT_EQ(opcode::LDS, instr.op);
-    ASSERT_EQ(4, instr.size);
+    ASSERT_EQ(2, instr.size);
     EXPECT_EQ(0b00101, instr.args.reg_address.reg);
     EXPECT_EQ(0b1010'1010'1010'1000, instr.args.reg_address.address);
 }
@@ -76,23 +76,23 @@ TEST(decode, ret)
     // just the opcode
     auto instr = decode_raw<16>(0b1001'0101'0000'1000);
     ASSERT_EQ(opcode::RET, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
 }
 
 TEST(decode, cp)
 {   //                            oooo oo r ddddd rrrr
-    auto instr = decode_raw<16>(0b0000'01'0'10101'1100);
+    auto instr = decode_raw<16>(0b0001'01'0'10101'1100);
     ASSERT_EQ(opcode::CP, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b01100, instr.args.register1_register2.register1);
     EXPECT_EQ(0b10101, instr.args.register1_register2.register2);
 }
 
 TEST(decode, cpc)
 {
-    auto instr = decode_raw<16>(0b0001'01'0'01010'0110);
+    auto instr = decode_raw<16>(0b0000'01'0'01010'0110);
     ASSERT_EQ(opcode::CPC, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
     EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
 }
@@ -101,7 +101,7 @@ TEST(decode, rol)
 {
     auto instr = decode_raw<16>(0b0001'11'0'01010'0110);
     ASSERT_EQ(opcode::ROL, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
     EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
 }
@@ -110,7 +110,7 @@ TEST(decode, lsl)
 {
     auto instr = decode_raw<16>(0b0000'11'0'01010'0110);
     ASSERT_EQ(opcode::LSL, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
     EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
 }
@@ -120,7 +120,7 @@ TEST(decode, ldi)
     //                            oooo KKKK dddd KKKK
     auto instr = decode_raw<16>(0b1110'0110'1001'1010);
     ASSERT_EQ(opcode::LDI, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b0110'1010, instr.args.constant_register.constant);
     EXPECT_EQ(0b1001 + 16, instr.args.constant_register.reg);
 }
@@ -140,12 +140,12 @@ TEST(decode, brge)
 {   //                            oooo oo kkkkkkk ooo
     auto instr = decode_raw<16>(0b1111'01'0011011'100);
     ASSERT_EQ(opcode::BRGE, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b0011011, instr.args.offset.offset);
 
     auto instr2 = decode_raw<16>(0b1111'01'1111000'100);
     ASSERT_EQ(opcode::BRGE, instr2.op);
-    ASSERT_EQ(2, instr2.size);
+    ASSERT_EQ(1, instr2.size);
     EXPECT_EQ(-8, instr2.args.offset.offset);
 }
 
@@ -154,13 +154,13 @@ TEST(decode, rjmp)
 
     auto instr = decode_raw<16>(0b1100'0001'1001'0110);
     ASSERT_EQ(opcode::RJMP, instr.op);
-    ASSERT_EQ(2, instr.size);
+    ASSERT_EQ(1, instr.size);
     EXPECT_EQ(0b0001'1001'0110, instr.args.offset12.offset);
 
     // test signed
     auto instr2 = decode_raw<16>(0b1100'1111'1111'1101);
     ASSERT_EQ(opcode::RJMP, instr2.op);
-    ASSERT_EQ(2, instr2.size);
+    ASSERT_EQ(1, instr2.size);
     EXPECT_EQ(-3, instr2.args.offset12.offset);
 
 }
