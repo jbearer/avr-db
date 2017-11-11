@@ -208,6 +208,7 @@ instruction avr::decode(const byte_t *pc)
         instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
         instr.args.reg_address.address = word2; //*(reinterpret_cast<const uint16_t *>(pc + 2));
         return instr;
+    case opcode::LPM:
     case opcode::STX:
         instr.op = to_opcode(opcode11);
         instr.size = 1;
@@ -255,6 +256,10 @@ std::string avr::mnemonic(const instruction & instr)
         return "brne";
     case CPI:
         return "cpi";
+    case STX:
+        return "stx";
+    case LPM:
+        return "lpm";
     default:
         throw invalid_instruction_error(instr);
     }
