@@ -8,5 +8,5 @@ struct rduima {
 
     char read(int address);
 
-    void write(int address, char byte);
+    char write(int address, char byte);
 };
