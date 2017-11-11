@@ -55,6 +55,7 @@ char rduima::write(int address, char byte) {
         while (buffer == 0) {
             reader.read(buffer, 1);
             reader.close();
+            cout << buffer[0] << endl;
             return buffer[0];
         }
     }
