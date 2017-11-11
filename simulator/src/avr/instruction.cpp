@@ -48,14 +48,13 @@ bool instruction::operator!=(const instruction & that) const
     return !(*this == that);
 }
 
+
+
 address_t avr::register_pair_address(register_pair pair)
 {
     return 24 + 2*pair;
 }
 
-<<<<<<< 74bdb8f990e08ce44b9231b89c72af18bcc3b0c9
-instruction avr::decode(const byte_t *pc)
-=======
 uint16_t avr::bits_at(uint16_t bits, const std::vector<size_t>& locations)
 {
     uint16_t new_bits = 0;
@@ -77,8 +76,7 @@ uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
     return (bits >> (16 - max)) & mask;
 }
 
-instruction avr::decode(byte_t *pc)
->>>>>>> added ldi and helper methods
+instruction avr::decode(const byte_t *pc)
 {
     instruction instr;
 
@@ -144,6 +142,7 @@ instruction avr::decode(byte_t *pc)
     std::underlying_type_t<opcode> opcode6 = (*pc >> 2) & 0b0011'1111;
     switch (opcode6) {
     case opcode::CP:
+    case opcode::CPC:
         instr.op = to_opcode(opcode6);
         instr.size = 2;
         instr.args.register1_register2.register1 = ((*pc & 0b0010) << 3) | (*(pc + 1) & 0xF);

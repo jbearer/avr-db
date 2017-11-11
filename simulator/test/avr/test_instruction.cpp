@@ -77,6 +77,15 @@ TEST(decode, cp)
     EXPECT_EQ(0b10101, instr.args.register1_register2.register2);
 }
 
+TEST(decode, cpc)
+{
+    auto instr = decode_raw<16>(0b0001'01'0'01010'0110);
+    ASSERT_EQ(opcode::CPC, instr.op);
+    ASSERT_EQ(2, instr.size);
+    EXPECT_EQ(0b00110, instr.args.register1_register2.register1);
+    EXPECT_EQ(0b01010, instr.args.register1_register2.register2);
+}
+
 TEST(decode, ldi)
 {
     //                            oooo KKKK dddd KKKK
