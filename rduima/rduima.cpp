@@ -25,6 +25,7 @@ char rduima::read(int address) {
         while (buffer == 0) {
             reader.read(buffer, 1);
             reader.close();
+            cout << buffer[0] << endl;
             return buffer[0];
         }
     }
@@ -55,7 +56,6 @@ char rduima::write(int address, char byte) {
         while (buffer == 0) {
             reader.read(buffer, 1);
             reader.close();
-            cout << buffer[0] << endl;
             return buffer[0];
         }
     }
@@ -64,7 +64,7 @@ char rduima::write(int address, char byte) {
 
 int main() {
     rduima test("/dev/cu.usbmodem1421");
-    test.write(0x2A, 1);
+    test.write(0x2A, 4);
     test.read(0x2A);
 
     return 0;
