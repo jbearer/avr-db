@@ -86,7 +86,7 @@ instruction avr::decode(const byte_t *pc)
     uint16_t word1 = *reinterpret_cast<const uint16_t *>(pc);
 
     // 16-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode16 = (*pc << 8)| *(pc + 1);
+    std::underlying_type_t<opcode> opcode16 = word1;
     switch(opcode16) {
     case opcode::RET:
         instr.op = to_opcode(opcode16);
@@ -95,7 +95,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // 8-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode8 = bits_range(word1, 0, 8);
+    std::underlying_type_t<opcode> opcode8 = word1 & 0xFF00;
     switch (opcode8) {
     case opcode::ADIW:
     case opcode::SBIW:
@@ -109,7 +109,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // discontiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
-    std::underlying_type_t<opcode> opcode6 = bits_range(word1, 0, 6);
+    std::underlying_type_t<opcode> opcode6 = word1 & 0xFC00;
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
@@ -124,7 +124,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // contiguous 4-bit opcode
-    std::underlying_type_t<opcode> opcode4 = bits_range(word1, 0, 4);
+    std::underlying_type_t<opcode> opcode4 = word1 & 0xF000;
     switch (opcode4) {
     case opcode::LDI:
     case opcode::CPI:
@@ -147,7 +147,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // discontiguous 9-bit branch opcodes
-    std::underlying_type_t<opcode> opcode9 = bits_at(word1, std::vector<size_t>{0,1,2,3,4,5,13,14,15});
+    std::underlying_type_t<opcode> opcode9 = word1 & 0b1111'1100'0000'0111;
     switch (opcode9) {
     case opcode::BRGE:
     case opcode::BRNE:
@@ -164,7 +164,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // contiguous 5-bit opcode
-    std::underlying_type_t<opcode> opcode5 = bits_range(word1, 0,5);
+    std::underlying_type_t<opcode> opcode5 = word1 & 0xF800;
     switch (opcode5) {
     case opcode::OUT:
         instr.op = to_opcode(opcode5);
@@ -179,7 +179,7 @@ instruction avr::decode(const byte_t *pc)
     uint16_t word2 = (*(pc + 2) << 8)| *(pc + 3);
 
     // 10-bit discontiguous opcodes (CALL and JMP)
-    std::underlying_type_t<opcode> opcode10 = (*(pc + 1) & 0b1110) >> 1;
+    std::underlying_type_t<opcode> opcode10 = word1 & 0b1111'1110'0000'1110;
     opcode10 |= (*pc & 0b1111'1110) << 2;
     switch (opcode10) {
     case opcode::CALL:
@@ -198,7 +198,7 @@ instruction avr::decode(const byte_t *pc)
     }
 
     // 11-bit discontinuous opcodes (LDS and STS)
-    std::underlying_type_t<opcode> opcode11 = bits_at(word1, std::vector<size_t>{0,1,2,3,4,5,6,12,13,14,15});
+    std::underlying_type_t<opcode> opcode11 = word1 & 0b1111'1110'0000'1111;
     switch (opcode11) {
     case opcode::STS:
     case opcode::LDS:
@@ -211,7 +211,7 @@ instruction avr::decode(const byte_t *pc)
     case opcode::STX:
         instr.op = to_opcode(opcode11);
         instr.size = 1;
-        instr.args.register_args.reg = bits_range(word1, 7, 12);
+        instr.args.reg.reg = bits_range(word1, 7, 12);
         return instr;
     }
 
@@ -253,6 +253,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "out";
     case BRNE:
         return "brne";
+    case CPI:
+        return "cpi";
     default:
         throw invalid_instruction_error(instr);
     }
