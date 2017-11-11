@@ -52,12 +52,11 @@ char rduima::write(int address, char byte) {
     reader.open(this->port);
     char * buffer = new char[100];
 
-    cout << reader.is_open() << endl;
+    //cout << reader.is_open() << endl;
     if (reader.is_open()) {
         while (buffer == 0) {
-            reader.read(buffer, 1);
+            cout << reader.read(buffer, 1) << endl;
             reader.close();
-            cout << buffer[0] << endl;
             return buffer[0];
         }
     }
@@ -66,7 +65,7 @@ char rduima::write(int address, char byte) {
 
 int main() {
     rduima test("/dev/cu.usbmodem1421");
-    test.write(0x60, '1');
+    test.write(0x60, 'A');
     test.read(0x60);
 
     return 0;
