@@ -36,7 +36,7 @@ char rduima::read(int address) {
 
 char rduima::write(int address, char byte) {
     ofstream writer;
-    writer.open(this->port);
+    writer.open(this.port);
     
     if (writer.is_open()) {
         writer << 0;
@@ -49,7 +49,7 @@ char rduima::write(int address, char byte) {
     }
 
     ifstream reader;
-    reader.open(this->port);
+    reader.open(this.port);
     char * buffer = new char[1];
 
     cout << reader.is_open() << endl;
