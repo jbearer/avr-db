@@ -67,7 +67,7 @@ namespace avr {
 
     struct offset_args
     {
-        uint8_t         offset;
+        int8_t          offset;
     };
 
     struct instruction

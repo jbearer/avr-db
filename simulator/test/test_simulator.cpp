@@ -290,3 +290,81 @@ TEST(lds, lds)
     EXPECT_EQ(0x6A, sim->read(25));
     EXPECT_EQ(0x6A, sim->read(10));
 }
+
+TEST(brge, do_branch)
+{
+    // ldi r16,1       oooo KKKK dddd KKKK
+    uint16_t ldi16 = 0b1110'0000'0000'0001;
+
+    // ldi r17,2       oooo KKKK dddd KKKK
+    uint16_t ldi17 = 0b1110'0000'0001'0010;
+
+    // r17,r16      oooo oo r ddddd rrrr
+    uint16_t cp = 0b0001'01'1'10001'0000;
+
+    // brge 2         oooo oo kkkkkkk ooo
+    uint16_t brge = 0b1111'01'0000010'100;
+
+    // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t sub =      0b1001'0111'01'01'0110;
+
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi16);
+    instr_to_bytes(text_bytes, ldi17);
+    instr_to_bytes(text_bytes, cp);
+    instr_to_bytes(text_bytes, brge);
+    instr_to_bytes(text_bytes, sub);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
+}
+
+TEST(brge, dont_branch)
+{
+    // ldi r16,1       oooo KKKK dddd KKKK
+    uint16_t ldi16 = 0b1110'0000'0000'0001;
+
+    // ldi r17,2       oooo KKKK dddd KKKK
+    uint16_t ldi17 = 0b1110'0000'0001'0010;
+
+    // r16,r17      oooo oo r ddddd rrrr
+    uint16_t cp = 0b0001'01'1'10000'0001;
+
+    // brge 2         oooo oo kkkkkkk ooo
+    uint16_t brge = 0b1111'01'0000010'100;
+
+    // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t sub =      0b1001'0111'01'01'0110;
+
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi16);
+    instr_to_bytes(text_bytes, ldi17);
+    instr_to_bytes(text_bytes, cp);
+    instr_to_bytes(text_bytes, brge);
+    instr_to_bytes(text_bytes, sub);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(decode_raw<16>(sub), sim->next_instruction());
+}

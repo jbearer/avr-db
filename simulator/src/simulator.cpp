@@ -166,6 +166,10 @@ private:
             lds(instr.args.reg_address.reg, instr.args.reg_address.address);
             pc += instr.size;
             break;
+        case BRGE:
+            brge(instr.args.offset.offset);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -229,8 +233,8 @@ private:
 
     void cp(uint8_t r1, uint8_t r2)
     {
-        auto rd = memory[r1];
-        auto rr = memory[r2];
+        auto rr = memory[r1];
+        auto rd = memory[r2];
 
         int16_t res = rd - rr;
         // TODO implement half-carry flag
@@ -247,8 +251,8 @@ private:
 
     void cpc(uint8_t r1, uint8_t r2)
     {
-        auto rd = memory[r1];
-        auto rr = memory[r2];
+        auto rr = memory[r1];
+        auto rd = memory[r2];
         auto carry = !!(sreg & SREG_C);
 
         int16_t res = rd - rr - carry;
@@ -269,8 +273,8 @@ private:
 
     void add(uint8_t r1, uint8_t r2)
     {
-        auto & rd = memory[r1];
-        auto & rr = memory[r2];
+        auto & rr = memory[r1];
+        auto & rd = memory[r2];
 
         uint16_t res = rd + rr;
 
@@ -290,8 +294,8 @@ private:
 
     void adc(uint8_t r1, uint8_t r2)
     {
-        auto & rd = memory[r1];
-        auto & rr = memory[r2];
+        auto & rr = memory[r1];
+        auto & rd = memory[r2];
 
         uint16_t res = rd + rr + !!(sreg & SREG_C);
 
@@ -317,6 +321,13 @@ private:
     void lds(uint8_t reg, address_t address)
     {
         memory[reg] = memory[address];
+    }
+
+    void brge(int8_t offset)
+    {
+        if (!(sreg & SREG_S)) {
+            pc += offset;
+        }
     }
 
     std::vector<byte_t>         text;
