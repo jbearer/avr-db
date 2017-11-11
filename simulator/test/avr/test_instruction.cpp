@@ -51,13 +51,24 @@ TEST(decode, jmp)
 
 TEST(decode, sts)
 {
-    //                            oooo ooo rrrrr oooo kkkkkkkkkkkkkkkk
-    auto instr = decode_raw<32>(0b1001'001'10101'0000'1010101010101010);
+    //                            oooo ooo rrrrr oooo kkkk kkkk kkkk kkkk
+    auto instr = decode_raw<32>(0b1001'001'10101'0000'1010'1010'1010'1010);
 
     ASSERT_EQ(opcode::STS, instr.op);
     ASSERT_EQ(4, instr.size);
     EXPECT_EQ(0b10101, instr.args.reg_address.reg);
-    EXPECT_EQ(0b1010101010101010, instr.args.reg_address.address);
+    EXPECT_EQ(0b1010'1010'1010'1010, instr.args.reg_address.address);
+}
+
+TEST(decode, lds)
+{
+    //                            oooo ooo rrrrr oooo kkkk kkkk kkkk kkkk
+    auto instr = decode_raw<32>(0b1001'000'00101'0000'1010'1010'1010'1000);
+
+    ASSERT_EQ(opcode::LDS, instr.op);
+    ASSERT_EQ(4, instr.size);
+    EXPECT_EQ(0b00101, instr.args.reg_address.reg);
+    EXPECT_EQ(0b1010'1010'1010'1000, instr.args.reg_address.address);
 }
 
 TEST(decode, ret)

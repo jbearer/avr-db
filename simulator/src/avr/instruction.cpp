@@ -124,17 +124,18 @@ instruction avr::decode(const byte_t *pc)
 
     // Not a 10-bit discontiguous opcode
     }
-
+    uint16_t word2 = (*(pc + 2) << 8)| *(pc + 3);
     // 11-bit discontinuous opcodes (LDS and STS)
     std::underlying_type_t<opcode> opcode11 = (*pc >> 1) << 4;  // left 7 bits
     opcode11 |= (*(pc + 1) & 0x0F);                             // right 4 bits
     switch (opcode11) {
     case opcode::STS:
+    case opcode::LDS:
         instr.op = to_opcode(opcode11);
         instr.size = 4;
         instr.args.reg_address.reg = (*pc & 0x1) << 4; // left bit of reg
         instr.args.reg_address.reg |= (*(pc + 1) & 0xF0) >> 4; // right 4 bits of reg
-        instr.args.reg_address.address = *(reinterpret_cast<const uint16_t *>(pc + 2));
+        instr.args.reg_address.address = word2; //*(reinterpret_cast<const uint16_t *>(pc + 2));
         return instr;
     }
 
@@ -175,6 +176,18 @@ std::string avr::mnemonic(const instruction & instr)
         return "call";
     case JMP:
         return "jmp";
+    case STS:
+        return "sts";
+    case RET:
+        return "ret";
+    case CP:
+        return "cp";
+    case CPC:
+        return "cpc";
+    case LDI:
+        return "ldi";
+    case LDS:
+        return "lds";
     default:
         throw invalid_instruction_error(instr);
     }
