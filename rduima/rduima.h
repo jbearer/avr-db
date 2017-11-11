@@ -1,8 +1,8 @@
 #include <string>
 
 struct rduima {
-    string port;
-    rduima(string path) : port(path) {
+    std::string port;
+    rduima(std::string path) : port(path) {
 
     }
 
