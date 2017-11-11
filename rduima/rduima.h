@@ -6,7 +6,7 @@ struct rduima {
 
     }
 
-    char read(uint address);
+    char read(int address);
 
-    void write(uint address, char byte);
-}
+    void write(int address, char byte);
+};

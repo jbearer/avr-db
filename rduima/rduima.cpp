@@ -5,7 +5,7 @@
 
 using namespace std;
 
-char rduima::read(uint address) {
+char rduima::read(int address) {
     ofstream file;
     file.open(this->port);
 
@@ -17,8 +17,9 @@ char rduima::read(uint address) {
         file.close();
     }
 
+    ifstream file;
     file.open(this->port);
-    char * buffer = new char[LARGE_NUM];
+    char * buffer = new char[100];
 
     if (file.is_open()) {
         while (buffer == 0) {
@@ -31,7 +32,7 @@ char rduima::read(uint address) {
     return 0;
 }
 
-char rduima::write(uint address, char byte) {
+char rduima::write(int address, char byte) {
     ofstream file;
     file.open(this->port);
 
@@ -45,13 +46,14 @@ char rduima::write(uint address, char byte) {
         file.close();
     }
 
+    ifstream file;
     file.open(this->port);
     char * buffer = new char[LARGE_NUM];
 
     if (file.is_open()) {
         while (buffer == 0) {
             file.read(buffer, 1);
-            fclose(file);
+            file.close();
             return buffer[0];
         }
     }
