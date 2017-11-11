@@ -186,6 +186,10 @@ std::string avr::mnemonic(const instruction & instr)
         return "cp";
     case CPC:
         return "cpc";
+    case ROL:
+        return "rol";
+    case LSL:
+        return "lsl";
     case LDI:
         return "ldi";
     case LDS:
