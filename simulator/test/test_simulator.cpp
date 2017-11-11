@@ -141,8 +141,28 @@ TEST(call, call)
 
     EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
     EXPECT_EQ(sp1 - 2, sp2);
-    EXPECT_EQ(0, sim->read(sp1));
+    EXPECT_EQ(4, sim->read(sp1));
     EXPECT_EQ(0, sim->read(sp1 + 1));
+}
+
+TEST(ret, after_call)
+{
+    // call 6         opopopo'kkkkk'opo'k'kkkkkkkkkkkkkkkk
+    uint32_t call = 0b1001010'00000'111'0'0000000000000110;
+
+    // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t sub =      0b1001'0111'01'01'0110;
+
+    // ret
+    uint16_t ret = 0b1001'0101'0000'1000;
+
+    auto text = text_segment(call, sub, ret);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment>());
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(decode_raw<16>(sub), sim->next_instruction());
 }
 
 TEST(jmp, jmp)

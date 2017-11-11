@@ -132,6 +132,9 @@ private:
         case CALL:
             call(instr.args.address.address);
             break;
+        case RET:
+            ret();
+            break;
         case JMP:
             jmp(instr.args.address.address);
             break;
@@ -174,9 +177,16 @@ private:
     {
         uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
         uint16_t & stack = reinterpret_cast<uint16_t &>(memory[sp]);
-        stack = pc;
+        stack = pc + 4; // Instruction after the call
         sp -= 2;
         pc = addr;
+    }
+
+    void ret()
+    {
+        uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
+        sp += 2;
+        pc = reinterpret_cast<uint16_t &>(memory[sp]);
     }
 
     void jmp(address_t addr)
