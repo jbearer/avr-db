@@ -10,12 +10,21 @@ namespace avr {
         SREG = 0x5F,
         R26 = 0x1A,
         R27 = 0x1B,
+        R28 = 0x1C,
+        R29 = 0x1D,
+        R30 = 0x1E,
+        R31 = 0x1F,
         SPL = 0x5D,
         SPH = 0x5E
     };
 
     static constexpr reg X_LO = R26;
     static constexpr reg X_HI = R27;
+    static constexpr reg Y_LO = R28;
+    static constexpr reg Y_HI = R29;
+    static constexpr reg Z_LO = R30;
+    static constexpr reg Z_HI = R31;
+
 
     enum sreg_flag
         : byte_t

@@ -190,6 +190,14 @@ private:
             out(instr.args.ioaddress_register.ioaddress, instr.args.ioaddress_register.reg);
             pc += instr.size;
             break;
+        case LPM:
+            lpm(instr.args.reg.reg);
+            pc += instr.size;
+            break;
+        case STX:
+            stx(instr.args.reg.reg);
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }
@@ -391,6 +399,21 @@ private:
     void out(int8_t ioaddress, int8_t reg)
     {
         memory[ioaddress + 0x20] = memory[reg];
+    }
+
+    void lpm(uint8_t reg)
+    {
+        auto & z = reinterpret_cast<uint16_t &>(memory[Z_LO]);
+        auto address = (2*(z & 0x7F)) + !!(z & (1 << 15));
+        memory[reg] = text[address];
+        ++z;
+    }
+
+    void stx(uint8_t reg)
+    {
+        auto & x = reinterpret_cast<uint16_t &>(memory[X_LO]);
+        memory[x] = memory[reg];
+        ++x;
     }
 
     std::vector<byte_t>         text;
