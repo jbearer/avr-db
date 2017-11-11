@@ -2,10 +2,9 @@
 
 #include <memory>
 
-namespace simulator {
+#include "types.h"
 
-    using address_t = size_t;
-    using byte_t = uint8_t;
+namespace simulator {
 
     enum section_type_t {
         DATA,
