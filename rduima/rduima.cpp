@@ -48,7 +48,7 @@ char rduima::write(int address, char byte) {
 
     ifstream reader;
     reader.open(this->port);
-    char * buffer = new char[LARGE_NUM];
+    char * buffer = new char[100];
 
     if (reader.is_open()) {
         while (buffer == 0) {
