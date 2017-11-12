@@ -204,6 +204,14 @@ private:
             stx(instr.args.reg.reg);
             pc += instr.size;
             break;
+        case PUSH:
+            push(memory[instr.args.reg.reg]);
+            pc += instr.size;
+            break;
+        case POP:
+            memory[instr.args.reg.reg] = pop();
+            pc += instr.size;
+            break;
         default:
             throw unimplemented_error(instr);
         }

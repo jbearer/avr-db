@@ -188,3 +188,21 @@ TEST(decode, eor)
     EXPECT_EQ(0b00011, instr.args.register1_register2.register1);
     EXPECT_EQ(0b00101, instr.args.register1_register2.register2);
 }
+
+TEST(decode, push)
+{
+    // push r5                    oooo ooo ddddd oooo
+    auto instr = decode_raw<16>(0b1001'001'00101'1111);
+    ASSERT_EQ(opcode::PUSH, instr.op);
+    ASSERT_EQ(1, instr.size);
+    EXPECT_EQ(5, instr.args.reg.reg);
+}
+
+TEST(decode, pop)
+{
+    // pop r5                     oooo ooo ddddd oooo
+    auto instr = decode_raw<16>(0b1001'000'00101'1111);
+    ASSERT_EQ(opcode::POP, instr.op);
+    ASSERT_EQ(1, instr.size);
+    EXPECT_EQ(5, instr.args.reg.reg);
+}

@@ -200,6 +200,8 @@ instruction avr::decode(const uint16_t *pc)
         return instr;
     case opcode::LPM:
     case opcode::STX:
+    case opcode::PUSH:
+    case opcode::POP:
         instr.op = to_opcode(opcode11);
         instr.size = 1;
         instr.args.reg.reg = bits_range(*pc, 7, 12);
@@ -252,6 +254,10 @@ std::string avr::mnemonic(const instruction & instr)
         return "stx";
     case LPM:
         return "lpm";
+    case PUSH:
+        return "push";
+    case POP:
+        return "pop";
     default:
         throw invalid_instruction_error(instr);
     }

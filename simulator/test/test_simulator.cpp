@@ -866,3 +866,102 @@ TEST(lpm, high_byte)
     EXPECT_EQ(0, sim->read(Z_LO));
     EXPECT_EQ(0x81, sim->read(Z_HI));
 }
+
+TEST(push, push)
+{
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // push r16       oooo ooo ddddd oooo
+    uint16_t push = 0b1001'001'10000'1111;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
+    instr_to_bytes(text_bytes, push);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(254, sim->read(SPL));
+    EXPECT_EQ(0, sim->read(SPH));
+    EXPECT_EQ(255, sim->read(255));
+}
+
+TEST(pop, pop)
+{
+    // ldi r16,254      oooo kkkk dddd kkkk
+    uint16_t ldi_sp = 0b1110'1111'0000'1110;
+
+    // ldi r17,1          oooo kkkk dddd kkkk
+    uint16_t ldi_data = 0b1110'0000'0001'0001;
+
+    // sts r16,SPL      oooo ooo ddddd oooo
+    uint32_t sts_sp = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // sts r17,255        oooo ooo ddddd oooo
+    uint32_t sts_data = 0b1001'001'10001'0000'0000'0000'1111'1111;
+
+    // pop r2        oooo ooo ddddd oooo
+    uint16_t pop = 0b1001'000'00010'1111;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_sp);
+    instr_to_bytes(text_bytes, ldi_data);
+    instr_to_bytes(text_bytes, sts_sp);
+    instr_to_bytes(text_bytes, sts_data);
+    instr_to_bytes(text_bytes, pop);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(255, sim->read(SPL));
+    EXPECT_EQ(0, sim->read(SPH));
+    EXPECT_EQ(1, sim->read(R2));
+}
+
+TEST(pop, after_push)
+{
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // push r16       oooo ooo ddddd oooo
+    uint16_t push = 0b1001'001'10000'1111;
+
+    // pop r2        oooo ooo ddddd oooo
+    uint16_t pop = 0b1001'000'00010'1111;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
+    instr_to_bytes(text_bytes, push);
+    instr_to_bytes(text_bytes, pop);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(255, sim->read(SPL));
+    EXPECT_EQ(0, sim->read(SPH));
+    EXPECT_EQ(255, sim->read(R2));
+}
