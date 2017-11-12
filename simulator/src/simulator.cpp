@@ -192,6 +192,10 @@ private:
             eor(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
             pc += instr.size;
             break;
+        case IN:
+            in(instr.args.ioaddress_register.ioaddress, instr.args.ioaddress_register.reg);
+            pc += instr.size;
+            break;
         case OUT:
             out(instr.args.ioaddress_register.ioaddress, instr.args.ioaddress_register.reg);
             pc += instr.size;
@@ -432,6 +436,11 @@ private:
     void rjmp(int16_t offset)
     {
         pc += offset;
+    }
+
+    void in(int8_t ioaddress, int8_t reg)
+    {
+        memory[reg] = memory[ioaddress + 0x20];
     }
 
     void out(int8_t ioaddress, int8_t reg)

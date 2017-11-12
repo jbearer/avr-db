@@ -166,6 +166,7 @@ instruction avr::decode(const uint16_t *pc)
     // contiguous 5-bit opcode
     std::underlying_type_t<opcode> opcode5 = *pc & 0xF800;
     switch (opcode5) {
+    case opcode::IN:
     case opcode::OUT:
         instr.op = to_opcode(opcode5);
         instr.size = 1;
@@ -244,6 +245,8 @@ std::string avr::mnemonic(const instruction & instr)
         return "rcall";
     case EOR:
         return "eor";
+    case IN:
+        return "in";
     case OUT:
         return "out";
     case BRNE:

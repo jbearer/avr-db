@@ -125,6 +125,16 @@ TEST(decode, ldi)
     EXPECT_EQ(0b1001 + 16, instr.args.constant_register.reg);
 }
 
+TEST(decode, in)
+{
+    //                            ooooo aa ddddd aaaa
+    auto instr = decode_raw<16>(0b10110'01'10101'0011);
+    ASSERT_EQ(opcode::IN, instr.op);
+    ASSERT_EQ(1, instr.size);
+    EXPECT_EQ(0b01'0011, instr.args.ioaddress_register.ioaddress);
+    EXPECT_EQ(0b10101, instr.args.ioaddress_register.reg);
+}
+
 TEST(decode, out)
 {
     //                            ooooo aa ddddd aaaa
@@ -134,7 +144,6 @@ TEST(decode, out)
     EXPECT_EQ(0b01'0011, instr.args.ioaddress_register.ioaddress);
     EXPECT_EQ(0b10101, instr.args.ioaddress_register.reg);
 }
-
 
 TEST(decode, brge)
 {   //                            oooo oo kkkkkkk ooo

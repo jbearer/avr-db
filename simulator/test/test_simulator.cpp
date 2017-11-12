@@ -965,3 +965,50 @@ TEST(pop, after_push)
     EXPECT_EQ(0, sim->read(SPH));
     EXPECT_EQ(255, sim->read(R2));
 }
+
+TEST(in, in)
+{
+    // ldi r16,1     oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'0000'0000'0001;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // in r2,SPL    ooooo AA ddddd AAAA
+    uint16_t in = 0b10110'11'00010'1101;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
+    instr_to_bytes(text_bytes, in);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(1, sim->read(R2));
+}
+
+TEST(out, out)
+{
+    // ldi r16,1     oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'0000'0000'0001;
+
+    // in r16,SPL    ooooo AA ddddd AAAA
+    uint16_t out = 0b10111'11'10000'1101;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, out);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(1, sim->read(SPL));
+}
