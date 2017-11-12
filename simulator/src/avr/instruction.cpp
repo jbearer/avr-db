@@ -103,13 +103,13 @@ instruction avr::decode(const uint16_t *pc)
     // Not an 8-bit opcode, try to match the next opcode type
     }
 
-    // discontiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
+    // contiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
     std::underlying_type_t<opcode> opcode6 = *pc & 0xFC00;
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
-    case opcode::ROL:
-    case opcode::LSL:
+    case opcode::ADD:
+    case opcode::ADC:
     case opcode::EOR:
         instr.op = to_opcode(opcode6);
         instr.size = 1;
@@ -228,10 +228,10 @@ std::string avr::mnemonic(const instruction & instr)
         return "cp";
     case CPC:
         return "cpc";
-    case ROL:
-        return "rol";
-    case LSL:
-        return "lsl";
+    case ADD:
+        return "add";
+    case ADC:
+        return "adc";
     case LDI:
         return "ldi";
     case LDS:

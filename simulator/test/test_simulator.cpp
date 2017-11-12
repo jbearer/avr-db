@@ -98,7 +98,85 @@ TEST(adiw, sum)
     EXPECT_EQ(0,  hi_x);
 }
 
-TEST(sbiw, sum)
+TEST(adiw, sreg_unsigned_flags)
+{
+    // ldi X_LO,254     oooo KKKK dddd KKKK
+    uint16_t ldi_lo = 0b1110'1111'1010'1110;
+
+    // ldi X_HI,255     oooo KKKK dddd KKKK
+    uint16_t ldi_hi = 0b1110'1111'1011'1111;
+
+    // adiw X,1       oooo'oooo'kk'pp'kkkk
+    uint16_t adiw = 0b1001'0110'00'01'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_lo);
+    instr_to_bytes(text_bytes, ldi_hi);
+    instr_to_bytes(text_bytes, adiw);
+    instr_to_bytes(text_bytes, adiw);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(255, sim->read(X_LO));
+    EXPECT_EQ(255, sim->read(X_HI));
+
+    sim->step();
+
+    EXPECT_EQ(SREG_C, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(SREG_Z, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(X_LO));
+    EXPECT_EQ(0, sim->read(X_HI));
+}
+
+TEST(adiw, sreg_signed_flags)
+{
+    // ldi X_LO,255     oooo KKKK dddd KKKK
+    uint16_t ldi_lo = 0b1110'1111'1010'1111;
+
+    // ldi X_HI,127     oooo KKKK dddd KKKK
+    uint16_t ldi_hi = 0b1110'0111'1011'1111;
+
+    // adiw X,1       oooo'oooo'kk'pp'kkkk
+    uint16_t adiw = 0b1001'0110'00'01'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_lo);
+    instr_to_bytes(text_bytes, ldi_hi);
+    instr_to_bytes(text_bytes, adiw);
+    instr_to_bytes(text_bytes, adiw);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(SREG_V, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0, sim->read(X_LO));
+    EXPECT_EQ(0x80, sim->read(X_HI));
+
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_S, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(1, sim->read(X_LO));
+    EXPECT_EQ(0x80, sim->read(X_HI));
+}
+
+TEST(sbiw, difference)
 {
     // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
     uint16_t instr =    0b1001'0111'01'01'0110;
@@ -116,6 +194,292 @@ TEST(sbiw, sum)
     bytes[1] = sim->read(X_HI);
 
     EXPECT_EQ(-22, x);
+}
+
+TEST(sbiw, sreg_unsigned_flags)
+{
+    // ldi X_LO,1    oooo KKKK dddd KKKK
+    uint16_t ldi = 0b1110'0000'1010'0001;
+
+    // sbiw X,1       oooo'oooo'kk'pp'kkkk
+    uint16_t sbiw = 0b1001'0111'00'01'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sbiw);
+    instr_to_bytes(text_bytes, sbiw);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_Z, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0, sim->read(X_LO));
+    EXPECT_EQ(0, sim->read(X_HI));
+
+    sim->step();
+
+    EXPECT_EQ(SREG_C, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0xFF, sim->read(X_LO));
+    EXPECT_EQ(0xFF, sim->read(X_HI));
+}
+
+TEST(sbiw, sreg_signed_flags)
+{
+    // ldi X_HI,0x80   oooo KKKK dddd KKKK
+    uint16_t ldi =   0b1110'1000'1011'0000;
+
+    // sbiw X,1       oooo'oooo'kk'pp'kkkk
+    uint16_t sbiw = 0b1001'0111'00'01'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sbiw);
+    instr_to_bytes(text_bytes, sbiw);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(SREG_V, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_S, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0xFF, sim->read(X_LO));
+    EXPECT_EQ(0x7F, sim->read(X_HI));
+
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0xFE, sim->read(X_LO));
+    EXPECT_EQ(0x7F, sim->read(X_HI));
+}
+
+TEST(add, sum)
+{
+    // ldi r16,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'0000'0000'0001;
+
+    // ldi r17,2        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0010;
+
+    // add r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t add = 0b0000'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(3, sim->read(16));
+    EXPECT_EQ(2, sim->read(17));
+}
+
+TEST(add, sreg_unsigned_flags)
+{
+    // ldi r16,254      oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'1111'0000'1110;
+
+    // ldi r17,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0001;
+
+    // add r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t add = 0b0000'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, add);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_H);
+    EXPECT_EQ(255, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+
+    sim->step();
+
+    EXPECT_EQ(SREG_C, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(SREG_Z, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_H, sim->read(SREG) & SREG_H);
+    EXPECT_EQ(0, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+}
+
+TEST(add, sreg_signed_flags)
+{
+    // ldi r16,127      oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'0111'0000'1111;
+
+    // ldi r17,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0001;
+
+    // add r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t add = 0b0000'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, add);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(SREG_V, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(1<<7, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_S, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0x81, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+}
+
+TEST(adc, sum)
+{
+    // ldi r16,255      oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'1111'0000'1111;
+
+    // ldi r17,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0001;
+
+    // adc r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t adc = 0b0001'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, adc);
+    instr_to_bytes(text_bytes, adc);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+
+    sim->step();
+
+    EXPECT_EQ(2, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+}
+
+TEST(adc, sreg_unsigned_flags)
+{
+    // ldi r16,255      oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'1111'0000'1111;
+
+    // ldi r17,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0001;
+
+    // adc r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t adc = 0b0001'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, adc);
+    instr_to_bytes(text_bytes, adc);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(SREG_C, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(SREG_Z, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_C);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_Z);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(2, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+}
+
+TEST(adc, sreg_signed_flags)
+{
+    // ldi r16,127      oooo KKKK dddd KKKK
+    uint16_t ldi_rd = 0b1110'0111'0000'1111;
+
+    // ldi r17,1        oooo KKKK dddd KKKK
+    uint16_t ldi_rr = 0b1110'0000'0001'0001;
+
+    // adc r16,r17   opop'op'r'ddddd'rrrr
+    uint16_t adc = 0b0001'11'1'10000'0001;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi_rd);
+    instr_to_bytes(text_bytes, ldi_rr);
+    instr_to_bytes(text_bytes, adc);
+    instr_to_bytes(text_bytes, adc);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(SREG_V, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(0, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0x80, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
+
+    sim->step();
+
+    EXPECT_EQ(0, sim->read(SREG) & SREG_V);
+    EXPECT_EQ(SREG_N, sim->read(SREG) & SREG_N);
+    EXPECT_EQ(SREG_S, sim->read(SREG) & SREG_S);
+    EXPECT_EQ(0x81, sim->read(16));
+    EXPECT_EQ(1, sim->read(17));
 }
 
 TEST(call, call)
@@ -232,46 +596,6 @@ TEST(sts, sts)
     sim->step();
     sim->step();
     EXPECT_EQ(22, sim->read(0b0000000111110100));
-}
-
-TEST(rol, rol)
-{
-    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
-    uint16_t add =      0b1001'0110'01'01'0110;
-
-    // rol r26       opop'op'r'ddddd'rrrr
-    uint16_t rol = 0b0001'11'1'11010'1010;
-
-    std::vector<byte_t> text_bytes;
-    instr_to_bytes(text_bytes, add);
-    instr_to_bytes(text_bytes, rol);
-
-    auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
-
-    sim->step();
-    sim->step();
-    EXPECT_EQ(0b0101100, sim->read(26));
-}
-
-TEST(lsl, lsl)
-{
-    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
-    uint16_t add =      0b1001'0110'01'01'0110;
-
-    // lsl r26       opop'op'r'ddddd'rrrr
-    uint16_t lsl = 0b0000'11'1'11010'1010;
-
-    std::vector<byte_t> text_bytes;
-    instr_to_bytes(text_bytes, add);
-    instr_to_bytes(text_bytes, lsl);
-
-    auto text = text_segment(text_bytes);
-    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
-
-    sim->step();
-    sim->step();
-    EXPECT_EQ(0b0101100, sim->read(26));
 }
 
 TEST(ldi, ldi)
@@ -468,4 +792,3 @@ TEST(lpm, high_byte)
     EXPECT_EQ(0, sim->read(Z_LO));
     EXPECT_EQ(0x81, sim->read(Z_HI));
 }
-

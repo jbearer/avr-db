@@ -156,12 +156,12 @@ private:
             cpc(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
             pc += instr.size;
             break;
-        case ROL:
-            adc(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+        case ADD:
+            add(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
             pc += instr.size;
             break;
-        case LSL:
-            add(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
+        case ADC:
+            adc(instr.args.register1_register2.register1, instr.args.register1_register2.register2);
             pc += instr.size;
             break;
         case LDI:
@@ -209,34 +209,84 @@ private:
         }
     }
 
-    void adiw(register_pair pair, uint16_t value)
+    void add_to_reg(uint8_t & reg, uint8_t del)
     {
-        uint16_t & reg = reinterpret_cast<uint16_t &>(memory[register_pair_address(pair)]);
-        uint32_t result = reg + value;
-        int32_t sresult = static_cast<int32_t>(result);
+        uint16_t result = reg + del;
 
         // Check for signed overflow
+        int8_t signed_reg = static_cast<int16_t>(reg);
+        int8_t signed_del = static_cast<int16_t>(del);
+        int8_t signed_result = result & 0xFF;
         toggle_sreg_flag(SREG_V,
-            sresult > std::numeric_limits<int16_t>::max() ||
-            sresult < std::numeric_limits<int16_t>::min());
+            (signed_reg > 0 && signed_del > 0 && signed_result <= 0) ||
+            (signed_reg < 0 && signed_del < 0 && signed_result >= 0));
+
+        // Half-carry flag
+        toggle_sreg_flag(SREG_H,
+            (result & (1<<4)) ? !(!!(reg & (1<<4)) ^ !!(del & (1<<4)))
+                              :  (!!(reg & (1<<4)) ^ !!(del & (1<<4))));
 
         // Check MSB of result
-        toggle_sreg_flag(SREG_N, result & (1<<15));
+        toggle_sreg_flag(SREG_N, result & (1<<7));
 
         // Check for zero result
-        toggle_sreg_flag(SREG_Z, !result);
+        toggle_sreg_flag(SREG_Z, !(result & 0xFF));
 
         // Check for carry
-        toggle_sreg_flag(SREG_C, result & (1<<16));
+        toggle_sreg_flag(SREG_C, result & (1<<8));
 
         update_sreg_sign();
 
-        reg = static_cast<uint16_t>(result);
+        reg = result;
+    }
+
+    void sub_from_reg(uint8_t & reg, uint8_t del)
+    {
+        uint8_t old_reg = reg;
+        add_to_reg(reg, ~del + 1);
+        toggle_sreg_flag(SREG_C, del > old_reg);
+    }
+
+    void adiw(register_pair pair, uint16_t value)
+    {
+        // Save half-carry flag: adiw should not modify it
+        uint8_t h = sreg | ~SREG_H;
+
+        auto lo_reg = register_pair_address(pair);
+        auto hi_reg = lo_reg + 1;
+        add_to_reg(memory[lo_reg], value & 0xFF);
+        add_to_reg(memory[hi_reg], ((value & 0xFF00) >> 8) + !!(sreg & SREG_C));
+
+        // Restore half-carry flag
+        sreg &= h;
     }
 
     void sbiw(register_pair pair, uint16_t value)
     {
-        adiw(pair, ~value + 1);
+        // Save half-carry flag: sbiw should not modify it
+        uint8_t h = sreg | ~SREG_H;
+
+        auto lo_reg = register_pair_address(pair);
+        auto hi_reg = lo_reg + 1;
+        sub_from_reg(memory[lo_reg], value & 0xFF);
+        sub_from_reg(memory[hi_reg], ((value & 0xFF00) >> 8) + !!(sreg & SREG_C));
+
+        // Restore half-carry flag
+        sreg &= h;
+    }
+
+    void add(uint8_t r1, uint8_t r2)
+    {
+        auto & rr = memory[r1];
+        auto & rd = memory[r2];
+        add_to_reg(rd, rr);
+    }
+
+    void adc(uint8_t r1, uint8_t r2)
+    {
+        auto & rr = memory[r1];
+        auto & rd = memory[r2];
+        add_to_reg(rd, rr + !!(sreg & SREG_C));
     }
 
     void call(address_t addr)
@@ -312,48 +362,6 @@ private:
         toggle_sreg_flag(SREG_C, rr + carry > rd);
         toggle_sreg_flag(SREG_N, res & (1<<7));
         update_sreg_sign();
-    }
-
-    void add(uint8_t r1, uint8_t r2)
-    {
-        auto & rr = memory[r1];
-        auto & rd = memory[r2];
-
-        uint16_t res = rd + rr;
-
-        // TODO implement half-carry flag
-
-        toggle_sreg_flag(SREG_V,
-            res < std::numeric_limits<int8_t>::min() ||
-            res > std::numeric_limits<int8_t>::max());
-
-        toggle_sreg_flag(SREG_Z, !res);
-        toggle_sreg_flag(SREG_N, res & (1 << 7));
-        toggle_sreg_flag(SREG_C, res & (1 << 8));
-        update_sreg_sign();
-
-        rd = res;
-    }
-
-    void adc(uint8_t r1, uint8_t r2)
-    {
-        auto & rr = memory[r1];
-        auto & rd = memory[r2];
-
-        uint16_t res = rd + rr + !!(sreg & SREG_C);
-
-        // TODO implement half-carry flag
-
-        toggle_sreg_flag(SREG_V,
-            res < std::numeric_limits<int8_t>::min() ||
-            res > std::numeric_limits<int8_t>::max());
-
-        toggle_sreg_flag(SREG_Z, !res);
-        toggle_sreg_flag(SREG_N, res & (1 << 7));
-        toggle_sreg_flag(SREG_C, res & (1 << 8));
-        update_sreg_sign();
-
-        rd = res;
     }
 
     void eor(uint8_t r1, uint8_t r2)
@@ -443,5 +451,3 @@ std::unique_ptr<simulator::simulator> simulator::program_with_segments(
 {
     return std::make_unique<simulator_impl>(board, text, other_segs);
 }
-
-
