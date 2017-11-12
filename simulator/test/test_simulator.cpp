@@ -521,7 +521,46 @@ TEST(call, call)
     EXPECT_EQ(0, sim->read(sp1 + 1));
 }
 
-TEST(ret, after_call)
+TEST(rcall, rcall)
+{
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // rcall 1         oooo kkkk kkkk kkkk
+    uint16_t rcall = 0b1101'0000'0000'0001;
+
+    uint16_t unreachable = 0b1001'0111'01'01'0110;
+
+    // adiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t add =      0b1001'0110'01'01'0110;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
+    instr_to_bytes(text_bytes, rcall);
+    instr_to_bytes(text_bytes, unreachable);
+    instr_to_bytes(text_bytes, add);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+
+    auto sp1 = stack_pointer(*sim);
+    sim->step();
+    auto sp2 = stack_pointer(*sim);
+
+    EXPECT_EQ(decode_raw<16>(add), sim->next_instruction());
+    EXPECT_EQ(sp1 - 2, sp2);
+    EXPECT_EQ(4, sim->read(sp1));
+    EXPECT_EQ(0, sim->read(sp1 + 1));
+}
+
+TEST(ret, from_call)
 {
     // ldi r16,255   oooo kkkk dddd kkkk
     uint16_t ldi = 0b1110'1111'0000'1111;
@@ -542,6 +581,41 @@ TEST(ret, after_call)
     instr_to_bytes(text_bytes, ldi);
     instr_to_bytes(text_bytes, sts);
     instr_to_bytes(text_bytes, call);
+    instr_to_bytes(text_bytes, sub);
+    instr_to_bytes(text_bytes, ret);
+
+    auto text = text_segment(text_bytes);
+    auto sim = program_with_segments(atmega168, *text, std::vector<segment *>());
+
+    sim->step();
+    sim->step();
+    sim->step();
+    sim->step();
+
+    EXPECT_EQ(decode_raw<16>(sub), sim->next_instruction());
+}
+
+TEST(ret, from_rcall)
+{
+    // ldi r16,255   oooo kkkk dddd kkkk
+    uint16_t ldi = 0b1110'1111'0000'1111;
+
+    // sts r16,SPL   oooo ooo ddddd oooo
+    uint32_t sts = 0b1001'001'10000'0000'0000'0000'0101'1101;
+
+    // rcall 1         oooo kkkk kkkk kkkk
+    uint16_t rcall = 0b1101'0000'0000'0001;
+
+    // sbiw X,010110(22)  opop'opop'kk'pp'kkkk
+    uint16_t sub =      0b1001'0111'01'01'0110;
+
+    // ret
+    uint16_t ret = 0b1001'0101'0000'1000;
+
+    std::vector<byte_t> text_bytes;
+    instr_to_bytes(text_bytes, ldi);
+    instr_to_bytes(text_bytes, sts);
+    instr_to_bytes(text_bytes, rcall);
     instr_to_bytes(text_bytes, sub);
     instr_to_bytes(text_bytes, ret);
 

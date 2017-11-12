@@ -132,10 +132,10 @@ private:
             pc += instr.size;
             break;
         case CALL:
-            call(instr.args.address.address);
+            call(instr.args.address.address, pc + instr.size);
             break;
         case RCALL:
-            rcall(instr.args.offset12.offset);
+            rcall(instr.args.offset12.offset, pc + instr.size);
             pc += instr.size;
             break;
         case RET:
@@ -289,29 +289,36 @@ private:
         add_to_reg(rd, rr + !!(sreg & SREG_C));
     }
 
-    void call(address_t addr)
+    void push(uint8_t b)
     {
         uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
-        uint16_t & stack = reinterpret_cast<uint16_t &>(memory[sp]);
-        stack = pc + 2; // Instruction after the call
-        sp -= 2;
-        pc = addr;
+        memory[sp--] = b;
     }
 
-    void rcall(int16_t offset)
+    uint8_t pop()
     {
         uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
-        uint16_t & stack = reinterpret_cast<uint16_t &>(memory[sp]);
-        stack = pc + 2; // Instruction after the call
-        sp -= 2;
-        pc += offset;
+        return memory[++sp];
+    }
+
+    void call(uint16_t jump_to, uint16_t return_to)
+    {
+        push(return_to & 0x00FF);
+        push(return_to & 0xFF00);
+        pc = jump_to;
+    }
+
+    void rcall(int16_t offset, uint16_t return_to)
+    {
+        call(pc + offset, return_to);
     }
 
     void ret()
     {
-        uint16_t & sp = reinterpret_cast<uint16_t &>(memory[SPL]);
-        sp += 2;
-        pc = reinterpret_cast<uint16_t &>(memory[sp]);
+        uint16_t addr = 0;
+        addr |= pop() << 8;
+        addr |= pop();
+        pc = addr;
     }
 
     void jmp(address_t addr)
