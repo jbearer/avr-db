@@ -2,6 +2,9 @@
 
 #include <exception>
 #include <string>
+#include <map>
+#include <vector>
+#include <memory>
 
 #include "types.h"
 
@@ -126,6 +129,21 @@ namespace avr {
 
     std::string mnemonic(const instruction &);
 
+    typedef instruction (*process_func)(std::map<char, uint16_t>);
+
+    // Matches an against instruction bits
+    class instr_exp {
+    public:
+        instr_exp(const std::string& exp, process_func process);
+        std::unique_ptr<instruction> matches(const uint16_t opcode);
+
+    private:
+        uint16_t        mask_;
+        uint16_t        opcode_;
+        std::map<char, std::vector<size_t>>   fields_;
+        process_func    process_;
+    };
+
     struct invalid_instruction_error
         : std::exception
     {
@@ -136,4 +154,5 @@ namespace avr {
     private:
         std::string desc;
     };
+
 }

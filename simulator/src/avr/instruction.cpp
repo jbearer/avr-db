@@ -75,6 +75,16 @@ uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
     return (bits >> (16 - max)) & mask;
 }
 
+instruction process_add(std::map<char, uint16_t> fields)
+{
+    instruction instr;
+    instr.op = ADD;
+    instr.size = 1;
+    instr.args.register1_register2.register1 = fields['r'];
+    instr.args.register1_register2.register2 = fields['d'];
+    return instr;
+}
+
 instruction avr::decode(const uint16_t *pc)
 {
     instruction instr;
@@ -82,6 +92,7 @@ instruction avr::decode(const uint16_t *pc)
 
     // 16-bit contiguous opcodes
     std::underlying_type_t<opcode> opcode16 = *pc;
+
     switch(opcode16) {
     case opcode::RET:
         instr.op = to_opcode(opcode16);
@@ -103,12 +114,19 @@ instruction avr::decode(const uint16_t *pc)
     // Not an 8-bit opcode, try to match the next opcode type
     }
 
+    instr_exp add_exp("0000 11r ddddd rrrr", &process_add);
+    auto match = add_exp.matches(opcode16);
+    if (match) {
+        std::cout << "matches!" << std::endl;
+        return *match;
+    }
+
     // contiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
     std::underlying_type_t<opcode> opcode6 = *pc & 0xFC00;
     switch (opcode6) {
     case opcode::CP:
     case opcode::CPC:
-    case opcode::ADD:
+    //case opcode::ADD:
     case opcode::ADC:
     case opcode::EOR:
         instr.op = to_opcode(opcode6);
@@ -212,11 +230,61 @@ instruction avr::decode(const uint16_t *pc)
     throw invalid_instruction_error(pc);
 }
 
+avr::instr_exp::instr_exp(const std::string& exp, process_func process)
+{
+    process_ = process;
+
+    mask_ = 0;
+    opcode_ = 0;
+    size_t index = 0;
+    for (size_t i = 0; i < exp.size(); ++i) {
+        if (exp[i] == ' ') {
+            continue;
+        }
+        if (exp[i] == '0') {
+            mask_ |= 1;
+            opcode_ |= 0;
+        }
+        else if (exp[i] == '1') {
+            mask_ |= 1;
+            opcode_ |= 1;
+        }
+        else {
+            if (fields_.count(exp[i]) == 0) {
+                fields_[exp[i]] = {index};
+            }
+            else {
+                fields_[exp[i]].push_back(index);
+            }
+        }
+        if (index == 15)    // don't want to shift the masks one last time
+            break;
+
+        mask_ <<= 1;
+        opcode_ <<= 1;
+        ++index;
+    }
+}
+
+std::unique_ptr<instruction> avr::instr_exp::matches(const uint16_t instr)
+{
+    if ((instr & mask_) == opcode_) {
+        std::map<char, uint16_t> bit_fields;
+        for (auto& p : fields_) {
+            bit_fields.emplace(p.first, bits_at(instr, p.second));
+        }
+        return std::make_unique<instruction>(process_(bit_fields));
+    }
+    else {
+        return nullptr;
+    }
+}
+
 std::string avr::mnemonic(const instruction & instr)
 {
     switch (instr.op) {
     case ADIW:
-        return "adiw";
+        return "ad'iw";
     case SBIW:
         return "sbiw";
     case CALL:
