@@ -131,8 +131,8 @@ namespace avr {
     typedef void (*process_func)(instruction&, std::map<char, uint16_t>);
 
     // processing functions for decoding instructions
-    void process_reg1_reg2(instruction& instr, std::map<char, uint16_t> fields);
     void process_nothing(instruction& instr, std::map<char, uint16_t> fields);
+    void process_reg1_reg2(instruction& instr, std::map<char, uint16_t> fields);
     void process_constant_reg(instruction& instr, std::map<char, uint16_t> fields);
     void process_offset(instruction& instr, std::map<char, uint16_t> fields);
     void process_offset12(instruction& instr, std::map<char, uint16_t> fields);
