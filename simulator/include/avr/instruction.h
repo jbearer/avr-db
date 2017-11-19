@@ -11,32 +11,31 @@
 namespace avr {
 
     enum opcode
-        : uint16_t
     {
-        ADIW = 0b1001'0110'0000'0000,
-        SBIW = 0b1001'0111'0000'0000,
-        CALL = 0b1001'0100'0000'1110,
-        JMP  = 0b1001'0100'0000'1100,
-        STS  = 0b1001'0010'0000'0000,
-        RET  = 0b1001'0101'0000'1000,
-        CP   = 0b0001'0100'0000'0000,
-        CPC  = 0b0000'0100'0000'0000,
-        ADD  = 0b0000'1100'0000'0000,
-        ADC  = 0b0001'1100'0000'0000,
-        LDI  = 0b1110'0000'0000'0000,
-        CPI  = 0b0011'0000'0000'0000,
-        LDS  = 0b1001'0000'0000'0000,
-        STX  = 0b1001'0010'0000'1101,
-        BRGE = 0b1111'0100'0000'0100,
-        BRNE = 0b1111'0100'0000'0001,
-        RJMP = 0b1100'0000'0000'0000,
-        EOR  = 0b0010'0100'0000'0000,
-        IN   = 0b1011'0000'0000'0000,
-        OUT  = 0b1011'1000'0000'0000,
-        LPM  = 0b1001'0000'0000'0101,
-        RCALL= 0b1101'0000'0000'0000,
-        PUSH = 0b1001'0010'0000'1111,
-        POP  = 0b1001'0000'0000'1111
+        ADIW,
+        SBIW,
+        CALL,
+        JMP,
+        STS,
+        RET,
+        CP,
+        CPC,
+        ADD,
+        ADC,
+        LDI,
+        CPI,
+        LDS,
+        STX,
+        BRGE,
+        BRNE,
+        RJMP,
+        EOR,
+        IN,
+        OUT,
+        LPM,
+        RCALL,
+        PUSH,
+        POP
     };
 
     enum register_pair
@@ -129,19 +128,61 @@ namespace avr {
 
     std::string mnemonic(const instruction &);
 
-    typedef instruction (*process_func)(std::map<char, uint16_t>);
+    typedef void (*process_func)(instruction&, std::map<char, uint16_t>);
+
+    // processing functions for decoding instructions
+    void process_reg1_reg2(instruction& instr, std::map<char, uint16_t> fields);
+    void process_nothing(instruction& instr, std::map<char, uint16_t> fields);
+    void process_constant_reg(instruction& instr, std::map<char, uint16_t> fields);
+    void process_offset(instruction& instr, std::map<char, uint16_t> fields);
+    void process_offset12(instruction& instr, std::map<char, uint16_t> fields);
+    void process_ioaddress_reg(instruction& instr, std::map<char, uint16_t> fields);
+    void process_constant_reg_pair(instruction& instr, std::map<char, uint16_t> fields);
+    void process_reg(instruction& instr, std::map<char, uint16_t> fields);
+    void process_reg_address(instruction& instr, std::map<char, uint16_t> fields);
+    void process_address(instruction& instr, std::map<char, uint16_t> fields);
 
     // Matches an against instruction bits
     class instr_exp {
     public:
-        instr_exp(const std::string& exp, process_func process);
-        std::unique_ptr<instruction> matches(const uint16_t opcode);
+        instr_exp(opcode name, const std::string& exp, process_func process);
+        std::unique_ptr<instruction> matches(const uint16_t instr);
 
     private:
+        opcode          name_;
         uint16_t        mask_;
-        uint16_t        opcode_;
-        std::map<char, std::vector<size_t>>   fields_;
+        uint16_t        masked_opcode_;
         process_func    process_;
+        std::map<char, std::vector<size_t>>   fields_;
+    };
+
+    static std::vector<instr_exp> expressions
+    {
+        {opcode::RET,  "1001 0101 0000 1000", &process_nothing},
+        {opcode::ADD,  "0000 11r ddddd rrrr", &process_reg1_reg2},
+        {opcode::ADC,  "0001 11r ddddd rrrr", &process_reg1_reg2},
+        {opcode::CP,   "0001 01r ddddd rrrr", &process_reg1_reg2},
+        {opcode::CPC,  "0000 01r ddddd rrrr", &process_reg1_reg2},
+        {opcode::EOR,  "0010 01r ddddd rrrr", &process_reg1_reg2},
+        {opcode::LDI,  "1110 KKKK dddd KKKK", &process_constant_reg},
+        {opcode::CPI,  "0011 KKKK dddd KKKK", &process_constant_reg},
+        {opcode::BRGE, "1111 01uu uuuu u100", &process_offset},
+        {opcode::BRNE, "1111 01uu uuuu u001", &process_offset},
+        {opcode::RJMP, "1100 uuuu uuuu uuuu", &process_offset12},
+        {opcode::RCALL,"1101 uuuu uuuu uuuu", &process_offset12},
+        {opcode::IN,   "1011 0aa ddddd aaaa", &process_ioaddress_reg},
+        {opcode::OUT,  "1011 1aa ddddd aaaa", &process_ioaddress_reg},
+        {opcode::ADIW, "1001 0110 kkpp kkkk", &process_constant_reg_pair},
+        {opcode::SBIW, "1001 0111 kkpp kkkk", &process_constant_reg_pair},
+        {opcode::PUSH, "1001 001 ddddd 1111", &process_reg},
+        {opcode::POP,  "1001 000 ddddd 1111", &process_reg},
+        {opcode::STX,  "1001 001 ddddd 1101", &process_reg},
+        {opcode::LPM,  "1001 000 ddddd 0101", &process_reg},
+        // 32-bit instructions:
+        {opcode::STS,  "1001 001 ddddd 0000", &process_reg_address},
+        {opcode::LDS,  "1001 000 ddddd 0000", &process_reg_address},
+        {opcode::CALL, "1001 010 kkkkk 111k", &process_address},
+        {opcode::JMP,  "1001 010 kkkkk 110k", &process_address}
     };
 
     struct invalid_instruction_error

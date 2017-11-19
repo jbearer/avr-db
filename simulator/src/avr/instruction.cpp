@@ -9,11 +9,6 @@
 
 using namespace avr;
 
-static opcode to_opcode(std::underlying_type_t<opcode> raw)
-{
-    return static_cast<opcode>(raw);
-}
-
 static register_pair to_reg_pair(std::underlying_type_t<register_pair> raw)
 {
     return static_cast<register_pair>(raw);
@@ -75,205 +70,150 @@ uint16_t avr::bits_range(uint16_t bits, size_t min, size_t max)
     return (bits >> (16 - max)) & mask;
 }
 
-instruction process_add(std::map<char, uint16_t> fields)
+int32_t twos_compliment(uint32_t n, size_t num_bits)
 {
-    instruction instr;
-    instr.op = ADD;
+    bool sign_bit = n >> (num_bits - 1);
+    uint32_t sign_mask = sign_bit << (num_bits - 1);
+    int32_t sign_offset = -1*pow(2, num_bits-1) * sign_bit;
+    return sign_offset + (~sign_mask & n);
+}
+
+void avr::process_reg1_reg2(instruction& instr, std::map<char, uint16_t> fields)
+{
     instr.size = 1;
     instr.args.register1_register2.register1 = fields['r'];
     instr.args.register1_register2.register2 = fields['d'];
-    return instr;
+}
+
+void avr::process_nothing(instruction& instr, std::map<char, uint16_t>)
+{
+    instr.size = 1;
+}
+
+void avr::process_constant_reg(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.constant_register.constant = fields['K'];
+    instr.args.constant_register.reg = fields['d'] + 16;
+}
+
+void avr::process_offset(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.offset.offset = twos_compliment(fields['u'], 7);
+}
+
+void avr::process_offset12(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.offset12.offset = twos_compliment(fields['u'], 12);
+}
+
+void avr::process_ioaddress_reg(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.ioaddress_register.ioaddress = fields['a'];
+    instr.args.ioaddress_register.reg = fields['d'];
+}
+
+void avr::process_constant_reg_pair(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.constant_register_pair.pair = to_reg_pair(fields['p']);
+    instr.args.constant_register_pair.constant = fields['k'];
+}
+
+void avr::process_reg(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 1;
+    instr.args.reg.reg = fields['d'];
+}
+
+void avr::process_reg_address(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 2;
+    instr.args.reg_address.reg = fields['d'];
+}
+
+void avr::process_address(instruction& instr, std::map<char, uint16_t> fields)
+{
+    instr.size = 2;
+    instr.args.address.address = fields['k'];
 }
 
 instruction avr::decode(const uint16_t *pc)
 {
-    instruction instr;
-    bzero(&instr, sizeof(instr));
+    std::underlying_type_t<opcode> instr = *pc;
 
-    // 16-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode16 = *pc;
+    for (auto& expr : avr::expressions) {
+        std::unique_ptr<instruction> match = expr.matches(instr);
+        if (match) {
 
-    switch(opcode16) {
-    case opcode::RET:
-        instr.op = to_opcode(opcode16);
-        instr.size = 1;
-        return instr;
-    }
+            // special cases for 32-bit instructions
+            if (match->op == opcode::LDS || match->op == opcode::STS) {
+                match->args.reg_address.address = *(pc + 1);
+            }
+            else if (match->op == opcode::JMP || match->op == opcode::CALL) {
+                match->args.address.address <<= 16;
+                match->args.address.address |= *(pc + 1);
+            }
 
-    // 8-bit contiguous opcodes
-    std::underlying_type_t<opcode> opcode8 = *pc & 0xFF00;
-    switch (opcode8) {
-    case opcode::ADIW:
-    case opcode::SBIW:
-        instr.op = to_opcode(opcode8);
-        instr.size = 1;
-        instr.args.constant_register_pair.pair = to_reg_pair(bits_range(*pc, 10, 12));
-        instr.args.constant_register_pair.constant = bits_at(*pc, std::vector<size_t>{8,9,12,13,14,15});
-        return instr;
-
-    // Not an 8-bit opcode, try to match the next opcode type
-    }
-
-    instr_exp add_exp("0000 11r ddddd rrrr", &process_add);
-    auto match = add_exp.matches(opcode16);
-    if (match) {
-        std::cout << "matches!" << std::endl;
-        return *match;
-    }
-
-    // contiguous 6-bit opcodes for cp, cpc, sub, subc, etc.
-    std::underlying_type_t<opcode> opcode6 = *pc & 0xFC00;
-    switch (opcode6) {
-    case opcode::CP:
-    case opcode::CPC:
-    //case opcode::ADD:
-    case opcode::ADC:
-    case opcode::EOR:
-        instr.op = to_opcode(opcode6);
-        instr.size = 1;
-        instr.args.register1_register2.register1 = bits_at(*pc, std::vector<size_t>{6,12,13,14,15});
-        instr.args.register1_register2.register2 = bits_range(*pc, 7, 12);
-        return instr;
-    }
-
-    // contiguous 4-bit opcode
-    std::underlying_type_t<opcode> opcode4 = *pc & 0xF000;
-    switch (opcode4) {
-    case opcode::LDI:
-    case opcode::CPI:
-        instr.op = to_opcode(opcode4);
-        instr.size = 1;
-        instr.args.constant_register.constant = bits_at(*pc, std::vector<size_t>{4,5,6,7,12,13,14,15});
-        instr.args.constant_register.reg = bits_range(*pc, 8, 12) + 16;
-        return instr;
-    case opcode::RJMP:
-    case opcode::RCALL:
-        {
-            instr.op = to_opcode(opcode4);
-            instr.size = 1;
-            uint16_t signed_offset = bits_range(*pc, 4, 16);
-            bool sign_bit = signed_offset >> 11;
-            uint16_t sign_mask = sign_bit << 11;
-            if (sign_bit)
-                instr.args.offset12.offset = (~sign_mask & signed_offset) + -1*pow(2,11);
-            else
-                instr.args.offset12.offset = signed_offset;
+            return *match;
         }
-        return instr;
-    }
-
-    // discontiguous 9-bit branch opcodes
-    std::underlying_type_t<opcode> opcode9 = *pc & 0b1111'1100'0000'0111;
-    switch (opcode9) {
-    case opcode::BRGE:
-    case opcode::BRNE:
-        {
-            instr.op = to_opcode(opcode9);
-            instr.size = 1;
-            uint8_t signed_offset = bits_range(*pc, 6, 13);
-            bool sign_bit = signed_offset >> 6;
-            uint8_t sign_mask = sign_bit << 6;
-            if (sign_bit)
-                instr.args.offset.offset = (~sign_mask & signed_offset) + -1*pow(2,6);
-            else
-                instr.args.offset.offset = signed_offset;
-        }
-        return instr;
-    }
-
-    // contiguous 5-bit opcode
-    std::underlying_type_t<opcode> opcode5 = *pc & 0xF800;
-    switch (opcode5) {
-    case opcode::IN:
-    case opcode::OUT:
-        instr.op = to_opcode(opcode5);
-        instr.size = 1;
-        instr.args.ioaddress_register.ioaddress = bits_at(*pc, std::vector<size_t>{5,6,12,13,14,15});
-        instr.args.ioaddress_register.reg = bits_range(*pc, 7, 12);
-        return instr;
-    }
-
-    // 10-bit discontiguous opcodes (CALL and JMP)
-    std::underlying_type_t<opcode> opcode10 = *pc & 0b1111'1110'0000'1110;
-    switch (opcode10) {
-    case opcode::CALL:
-    case opcode::JMP:
-        // TODO assumes address is at most 16 bits (true on ATmega168, not on all AVR boards)
-        instr.op = to_opcode(opcode10);
-        instr.size = 2;
-        instr.args.address.address = *(pc + 1);
-        return instr;
-
-    // Not a 10-bit discontiguous opcode
-    }
-
-    // 11-bit discontinuous opcodes (LDS and STS)
-    std::underlying_type_t<opcode> opcode11 = *pc & 0b1111'1110'0000'1111;
-    switch (opcode11) {
-    case opcode::STS:
-    case opcode::LDS:
-        instr.op = to_opcode(opcode11);
-        instr.size = 2;
-        instr.args.reg_address.reg = bits_range(*pc, 7, 12);
-        instr.args.reg_address.address = *(pc + 1);
-        return instr;
-    case opcode::LPM:
-    case opcode::STX:
-    case opcode::PUSH:
-    case opcode::POP:
-        instr.op = to_opcode(opcode11);
-        instr.size = 1;
-        instr.args.reg.reg = bits_range(*pc, 7, 12);
-        return instr;
     }
 
     throw invalid_instruction_error(pc);
 }
 
-avr::instr_exp::instr_exp(const std::string& exp, process_func process)
+avr::instr_exp::instr_exp(opcode name, const std::string& exp, process_func process) :
+    name_{name}, process_{process}
 {
-    process_ = process;
 
     mask_ = 0;
-    opcode_ = 0;
+    masked_opcode_ = 0;
     size_t index = 0;
-    for (size_t i = 0; i < exp.size(); ++i) {
-        if (exp[i] == ' ') {
-            continue;
+    for (auto c : exp) {
+        if (c == ' ') {
+            continue;   // ignore spaces
         }
-        if (exp[i] == '0') {
+        if (c == '0') {
             mask_ |= 1;
-            opcode_ |= 0;
+            masked_opcode_ |= 0;
         }
-        else if (exp[i] == '1') {
+        else if (c == '1') {
             mask_ |= 1;
-            opcode_ |= 1;
+            masked_opcode_ |= 1;
         }
         else {
-            if (fields_.count(exp[i]) == 0) {
-                fields_[exp[i]] = {index};
+            if (fields_.count(c) == 0) {
+                fields_[c] = {index};
             }
             else {
-                fields_[exp[i]].push_back(index);
+                fields_[c].push_back(index);
             }
         }
-        if (index == 15)    // don't want to shift the masks one last time
+        ++index;
+        if (index == sizeof(mask_)*8)    // don't want to shift the masks one last time
             break;
 
         mask_ <<= 1;
-        opcode_ <<= 1;
-        ++index;
+        masked_opcode_ <<= 1;
     }
 }
 
 std::unique_ptr<instruction> avr::instr_exp::matches(const uint16_t instr)
 {
-    if ((instr & mask_) == opcode_) {
+    if ((instr & mask_) == masked_opcode_) {
         std::map<char, uint16_t> bit_fields;
         for (auto& p : fields_) {
             bit_fields.emplace(p.first, bits_at(instr, p.second));
         }
-        return std::make_unique<instruction>(process_(bit_fields));
+
+        instruction instr;
+        bzero(&instr, sizeof(instr));
+        instr.op = name_;
+        process_(instr, bit_fields);
+        return std::make_unique<instruction>(instr);
     }
     else {
         return nullptr;
@@ -284,7 +224,7 @@ std::string avr::mnemonic(const instruction & instr)
 {
     switch (instr.op) {
     case ADIW:
-        return "ad'iw";
+        return "adiw";
     case SBIW:
         return "sbiw";
     case CALL:
